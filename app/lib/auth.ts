@@ -32,14 +32,15 @@ export async function signRefreshToken(userId: number): Promise<string> {
   return refreshToken;
 }
 
-export async function verifyAccessToken(
+export async function verifyToken(
   token: string,
+  secret: string,
 ): Promise<{ userId: number } | null> {
   try {
-    const decoded = await jwt.verify(token, process.env.JWT_SECRET!);
+    const decoded = await jwt.verify(token, secret);
     return decoded as { userId: number };
   } catch (error) {
-    console.log("Access token verification failed:", error);
+    console.log("Token verification failed:", error);
     return null;
   }
 }

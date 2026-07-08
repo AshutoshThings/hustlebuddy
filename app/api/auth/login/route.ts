@@ -8,10 +8,19 @@ import {
 } from "@/app/lib/auth";
 import { validationSchema } from "@/app/lib/validationSchema";
 
-const DUMMY_HASH = "$2a$10$CwTycUXWu$2a$10$CwTycUXWue0Thq9StjfvpP3EHFm"; // Dummy hash for timing attack prevention
+const DUMMY_HASH =
+  "$2a$08$ZUxsk3klUbOZzTBkyBW7hO7iBBCLQ5sNTCkuo8ZNHKD5k8O98tbU."; // Dummy hash for timing attack prevention
+// Used when the email does not exist so bcrypt work remains constant.
+// Helps reduce account enumeration via timing differences.
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    console.log(e);
+    return NextResponse.json({ message: "Empty body" }, { status: 400 });
+  }
 
   // Validate the request body against the schema
   const validationResult = validationSchema.safeParse(body);
@@ -47,6 +56,8 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    // password auth success, proceed with JWT token
 
     const accessToken = await signAccessToken(user.id);
     const refreshToken = await signRefreshToken(user.id);
