@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch (e) {
     console.log(e);
-    return NextResponse.json({ message: "Empty body" }, { status: 400 });
+    return NextResponse.json({ response: "Empty body" }, { status: 400 });
   }
 
   // Validate the request body against the schema
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   if (!validationResult.success) {
     console.log("Validation errors: ", validationResult.error);
     return NextResponse.json(
-      { message: "Invalid input - zod validation failed!" },
+      { response: "Invalid input - zod validation failed!" },
       { status: 400 },
     );
   }
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       console.log("User not found for email: ", email);
       await verifyPassword(password, DUMMY_HASH);
       return NextResponse.json(
-        { message: "Invalid email or password" },
+        { response: "Invalid email or password" },
         { status: 401 },
       );
     }
@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     if (!isPasswordValid) {
       console.log("Invalid password for user: ", email);
       return NextResponse.json(
-        { message: "Invalid email or password" },
+        { response: "Invalid email or password" },
         { status: 401 },
       );
     }
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error during login: ", error);
     return NextResponse.json(
-      { message: "Error during login" },
+      { response: "Error during login" },
       { status: 500 },
     );
   } finally {

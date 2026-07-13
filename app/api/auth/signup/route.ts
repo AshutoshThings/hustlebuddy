@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (!validationResult.success) {
     console.log("Validation errors:", validationResult.error);
     return NextResponse.json(
-      { message: "Invalid input - zod validation failed!" },
+      { response: "Invalid input - zod validation failed!" },
       { status: 400 },
     );
   }
@@ -29,14 +29,14 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating user:", error);
     return NextResponse.json(
-      { message: "Error creating user" },
+      { response: "Error creating user" },
       { status: 500 },
     );
   } finally {
     console.log("Signup route completed");
   }
   return NextResponse.json({
-    message: "Signup successful!",
+    response: "Signup successful!",
     body: body.email,
   });
 }

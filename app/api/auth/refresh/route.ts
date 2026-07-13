@@ -77,10 +77,10 @@ export async function POST(request: NextRequest) {
 
 function unauthorizedResponse() {
   return NextResponse.json(
-    { message: "Session is over, Sign in again" },
+    { response: "Session is over, Sign in again" },
     { status: 401 },
   );
 }
 function serverErrorResponse() {
-  return NextResponse.json({ message: "DB error" }, { status: 500 });
+  return NextResponse.json({ response: "DB error" }, { status: 500 });
 }

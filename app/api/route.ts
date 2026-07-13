@@ -14,5 +14,5 @@ export async function GET(request: Request) {
   } else {
     console.log("Database connection successful. Users:", client.rows);
   }
-  return NextResponse.json({ message: "Hello from the API route!" });
+  return NextResponse.json({ response: "Hello from the API route!" });
 }
