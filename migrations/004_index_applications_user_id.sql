@@ -1,0 +1,1 @@
+CREATE INDEX idx_applications_user_id ON applications(user_id);
