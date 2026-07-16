@@ -12,3 +12,10 @@ export const applicationSchema = zod.object({
   source: zod.string().optional(),
   notes: zod.string().optional(),
 });
+
+export const applicationOnUpdate = applicationSchema
+  .partial()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    "at least 1 value is required",
+  );
