@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const { userId } = auth;
   try {
     const userApplications = await pool.query(
-      "SELECT * FROM applications where user_id = $1",
+      "SELECT * FROM applications where user_id = $1 AND deleted_at IS NULL",
       [userId],
     );
 

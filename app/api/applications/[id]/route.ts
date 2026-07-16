@@ -45,7 +45,7 @@ export async function PATCH(
   const values = entries.map(([, value]) => value);
   setClauses.push("updated_at = now()");
 
-  const query = `UPDATE applications SET ${setClauses.join(", ")} WHERE id = $${values.length + 1} AND user_id = $${values.length + 2} RETURNING *`;
+  const query = `UPDATE applications SET ${setClauses.join(", ")} WHERE id = $${values.length + 1} AND user_id = $${values.length + 2} AND deleted_at IS NULL RETURNING *`;
 
   try {
     const queryResult = await pool.query(query, [...values, paramsId, userId]);
@@ -66,6 +66,50 @@ export async function PATCH(
     console.error("Error updating application", userId, paramsId, e);
     return NextResponse.json(
       { response: "failed to update application" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await getAuthUser(request);
+  if (!auth) {
+    return NextResponse.json(
+      { response: "session expired, login again" },
+      { status: 401 },
+    );
+  }
+  const id = Number((await params).id);
+
+  if (Number.isNaN(id) || id <= 0) {
+    return NextResponse.json({ response: "invalid params" }, { status: 400 });
+  }
+  const { userId } = auth;
+  const query = `UPDATE applications SET deleted_at = NOW() where id = $1 and user_id = $2 AND deleted_at IS NULL RETURNING *`;
+
+  try {
+    const queryResult = await pool.query(query, [id, userId]);
+
+    if (queryResult.rows.length === 0) {
+      return NextResponse.json(
+        {
+          response: "application not found",
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(
+      { application_deleted: queryResult.rows[0] },
+      { status: 200 },
+    );
+  } catch (e) {
+    console.error("Application delete failed", { userId, id }, e);
+    return NextResponse.json(
+      { response: "Failed to delete application" },
       { status: 500 },
     );
   }
