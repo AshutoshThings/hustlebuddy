@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { FadeIn } from "@/app/components/ui/FadeIn";
+import { HustleBuddyLogo } from "../ui/HustleBuddyLogo";
 
 export const Hero = () => {
   const router = useRouter();
@@ -11,7 +12,9 @@ export const Hero = () => {
     <section className="relative h-screen flex flex-col justify-center px-6 md:px-12 lg:px-24 overflow-hidden">
       <nav className="absolute top-0 left-0 w-full px-6 md:px-12 lg:px-24 py-8 flex justify-between items-center z-20">
         <div className="text-2xl font-semibold tracking-[-0.05em] text-white/90">
-          HustleBuddy
+          <span className="flex items-center justify-center group-hover/logo:scale-110 transition-transform duration-300 text-white">
+            <HustleBuddyLogo className="w-5 h-5 mr-2" /> HustleBuddy
+          </span>
         </div>
         <button
           onClick={() => router.push("/login")}
