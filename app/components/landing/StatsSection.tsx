@@ -9,22 +9,22 @@ const stats = [
     end: 10,
     suffix: "+",
     decimals: 0,
-    label: "Portals people juggle",
-    note: "Internshala, Unstop, Wellfound, LinkedIn, and more",
+    label: "Portals you juggle",
+    note: "Internshala, Unstop, Wellfound, LinkedIn and more",
   },
   {
-    end: 3,
-    suffix: "+",
-    decimals: 1,
-    label: "Hours Lost every week tracking",
-    note: "Spreadsheets, screenshots, and forgotten tabs",
+    end: 4,
+    suffix: "-6 hrs",
+    decimals: 0,
+    label: "Wasted every week",
+    note: "Retyping the same details and tracking applications",
   },
   {
     end: 0,
     suffix: "",
     decimals: 0,
     label: "Applications lost",
-    note: "With everything logged in one place",
+    note: "When everything lives in one place",
   },
 ];
 
@@ -47,8 +47,8 @@ export const StatsSection = () => {
             </h2>
 
             <p className="text-slate-400 text-base md:text-lg leading-relaxed font-light">
-              It&apos;s not just the applying — it&apos;s retyping the same
-              details everywhere, losing track of what you sent where, and
+              It&apos;s not just the applying - it&apos;s retyping the same
+              details on every portal, losing track of what you sent where, and
               starting from scratch every time.
             </p>
           </FadeIn>

@@ -6,7 +6,7 @@ import {
   signAccessToken,
   signRefreshToken,
 } from "@/app/lib/auth";
-import { validationSchema } from "@/app/lib/validationSchema";
+import { loginSchema } from "@/app/lib/validationSchema";
 
 const DUMMY_HASH =
   "$2a$08$ZUxsk3klUbOZzTBkyBW7hO7iBBCLQ5sNTCkuo8ZNHKD5k8O98tbU."; // Dummy hash for timing attack prevention
@@ -23,11 +23,11 @@ export async function POST(request: Request) {
   }
 
   // Validate the request body against the schema
-  const validationResult = validationSchema.safeParse(body);
+  const validationResult = loginSchema.safeParse(body);
   if (!validationResult.success) {
     console.log("Validation errors: ", validationResult.error);
     return NextResponse.json(
-      { response: "Invalid input - zod validation failed!" },
+      { response: validationResult.error.issues.map((issue) => issue.message) },
       { status: 400 },
     );
   }

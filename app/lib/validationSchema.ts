@@ -1,16 +1,28 @@
-import zod from "zod";
+import z from "zod";
 
-export const validationSchema = zod.object({
-  email: zod.string().email(),
-  password: zod.string().min(6),
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[\W_]/, "Password must contain at least one special character"),
 });
 
-export const applicationSchema = zod.object({
-  company: zod.string().min(1),
-  role: zod.string().min(1),
-  status: zod.enum(["applied", "interviewing", "offered", "rejected"]),
-  source: zod.string().optional(),
-  notes: zod.string().optional(),
+const signupFields = z.object({
+  name: z.string().min(2, "Name is Required"),
+});
+
+export const signupSchema = signupFields.merge(loginSchema);
+
+export const applicationSchema = z.object({
+  company: z.string().min(1),
+  role: z.string().min(1),
+  status: z.enum(["applied", "interviewing", "offered", "rejected"]),
+  source: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export const applicationOnUpdate = applicationSchema

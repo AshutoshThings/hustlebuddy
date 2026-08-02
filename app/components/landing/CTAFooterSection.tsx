@@ -60,8 +60,8 @@ export const CTAFooterSection = () => {
             </span>
           </h2>
           <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto font-light">
-            Join the students and developers who are organizing their job hunt
-            in one unified workspace.
+            Keep all your applications in one place and stop losing track of
+            what you applied to.
           </p>
 
           {/* 3. Interactive Shimmer Button */}
@@ -70,7 +70,7 @@ export const CTAFooterSection = () => {
             <div className="absolute inset-0 bg-white/20 rounded-full blur-md opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500" />
 
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => router.push("/auth")}
               className="relative overflow-hidden px-8 py-4 bg-white text-black text-lg font-medium rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_40px_rgba(255,255,255,0.1)]"
             >
               <span className="relative z-10">Get started for free</span>

@@ -17,7 +17,7 @@ export const Hero = () => {
           </span>
         </div>
         <button
-          onClick={() => router.push("/login")}
+          onClick={() => router.push("/auth")}
           className="px-5 py-2.5 text-xs font-semibold tracking-wide uppercase border border-white/10 hover:bg-white/5 rounded-full transition-all text-white/80"
         >
           Sign In
@@ -53,7 +53,7 @@ export const Hero = () => {
 
         <FadeIn delay={0.8}>
           <button
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/auth")}
             className="mt-6 px-8 py-4 bg-white text-black text-lg font-medium rounded-full hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 shadow-[inset_0_-3px_10px_rgba(0,0,0,0.15),0_10px_30px_rgba(255,255,255,0.1)]"
           >
             Open my dashboard

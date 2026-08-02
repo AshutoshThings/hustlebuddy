@@ -11,8 +11,8 @@ export const FeaturesSection = () => {
             The Workspace
           </div>
           <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-white/90 mb-4">
-            Everything you need. <br />
-            <span className="text-slate-500">Nothing you don't.</span>
+            Everything you actually need. <br />
+            <span className="text-slate-500">Nothing extra.</span>
           </h2>
         </div>
       </Reveal>
@@ -25,8 +25,9 @@ export const FeaturesSection = () => {
               Kanban Tracking
             </h3>
             <p className="text-slate-500 text-sm max-w-sm z-10">
-              Drag and drop applications from applied, to interviewing, to
-              offer. See your entire pipeline at a glance.
+              Move applications from Applied → Interviewing → Offer. See your
+              whole pipeline in one place instead of digging through tabs and
+              notes.
             </p>
             {/* Mock UI */}
             <div className="absolute -bottom-12 -right-4 w-[110%] h-[240px] bg-[#111] border border-white/5 rounded-t-xl flex gap-3 p-4 shadow-2xl rotate-2 group-hover:-translate-y-2 transition-transform duration-500">
@@ -55,8 +56,8 @@ export const FeaturesSection = () => {
               The Extension
             </h3>
             <p className="text-slate-500 text-sm z-10">
-              One-click autofill for repetitive forms. Coming soon to Chrome and
-              Edge.
+              Fills the boring, repetitive fields for you. Coming soon for
+              Chrome and Edge.
             </p>
             {/* Mock UI */}
             <div className="absolute -bottom-8 right-8 w-48 h-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl p-4 flex flex-col group-hover:scale-105 transition-transform duration-500">
@@ -84,8 +85,8 @@ export const FeaturesSection = () => {
               Insights
             </h3>
             <p className="text-slate-500 text-sm z-10">
-              Visualize your response rates and figure out which portals are
-              actually working for you.
+              See which portals actually give you replies and which ones just
+              waste your time.
             </p>
             {/* Mock UI */}
             <div className="absolute -bottom-6 left-8 right-8 h-32 flex items-end gap-2 group-hover:opacity-80 transition-opacity">
@@ -105,14 +106,12 @@ export const FeaturesSection = () => {
           <div className="md:col-span-2 bg-[#0A0A0C] border border-white/10 rounded-3xl p-8 h-[360px] flex flex-col justify-center items-start relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <h3 className="text-xl font-medium text-white mb-2 z-10">
-              Never miss a test link
+              Don’t miss another test link
             </h3>
             <p className="text-slate-500 text-sm max-w-sm z-10 mb-6">
-              Log OA (Online Assessment) deadlines and interview slots.
-              HustleBuddy keeps your schedule clean so you don't wake up to
-              expired links.
+              Log OA deadlines and interview slots so you don’t wake up to an
+              expired link.
             </p>
-            {/* Retained the red accent here ONLY because red is the universal UI standard for "urgent/deadline" */}
             <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 rounded-full text-xs font-mono z-10">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
               Flipkart OA due in 12 hours

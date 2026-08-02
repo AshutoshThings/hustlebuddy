@@ -7,20 +7,20 @@ import { Reveal } from "@/app/components/ui/Reveal";
 export const FAQSection = () => {
   const faqs = [
     {
-      q: "Which job portals are supported by the extension?",
-      a: "The extension is currently being optimized for Internshala, Unstop, Wellfound, and LinkedIn. However, the manual dashboard can track applications from absolutely anywhere.",
+      q: "Which job portals does the extension work with?",
+      a: "Right now we’re focusing on Internshala, Unstop, Wellfound, and LinkedIn. You can still track applications from any other site manually in the dashboard.",
     },
     {
       q: "Is HustleBuddy free?",
-      a: "Yes! Tracking your applications and using the core dashboard is entirely free for students and freshers.",
+      a: "Yes. Tracking applications and using the dashboard is free for students and freshers.",
     },
     {
       q: "Do I need the extension to use the dashboard?",
-      a: "Not at all. You can manually log applications into your dashboard today. The extension is simply an upcoming feature to automate the filling process.",
+      a: "No. You can log applications manually right now. The extension is just an upcoming feature that will help with filling forms faster.",
     },
     {
       q: "How does the auto-fill actually work?",
-      a: "You fill out your 'Master Profile' once in HustleBuddy. When you open a supported job portal, our extension maps your master data to the form fields and injects it with one click.",
+      a: "You set up your Master Profile once. When you’re on a supported job site, the extension takes that info and fills the form fields for you in one click.",
     },
   ];
 

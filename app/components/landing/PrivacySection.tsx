@@ -6,17 +6,17 @@ export const PrivacySection = () => {
   const policies = [
     {
       title: "Local-First Extension",
-      desc: "The browser extension only activates on specific job boards. It doesn't read your general browsing history.",
+      desc: "The extension only works on job sites. It doesn’t peek at the rest of your browsing history.",
       icon: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
     },
     {
       title: "Encrypted Storage",
-      desc: "Your phone numbers, emails, and custom resume links are stored securely. We can't use them, and we never will.",
+      desc: "Your phone number, email, and resume links stay locked. We can’t use them, and we never will.",
       icon: <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />,
     },
     {
       title: "No Spam, No Selling",
-      desc: "HustleBuddy is a tool for you, not an ad network. Your data is never sold to third-party recruiters.",
+      desc: "This is a tool for you, not an ad platform. We don’t sell your data to recruiters or anyone else.",
       icon: <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />,
     },
   ];
@@ -30,8 +30,8 @@ export const PrivacySection = () => {
               Built on trust.
             </h2>
             <p className="text-slate-500 text-lg max-w-xl font-light">
-              Job applications require highly sensitive data. We treat your
-              personal information like our own.
+              Job applications need personal details. We treat that data the
+              same way we’d want ours treated.
             </p>
           </div>
         </Reveal>
