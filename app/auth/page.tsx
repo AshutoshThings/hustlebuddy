@@ -21,6 +21,8 @@ function AuthContent() {
   const isSignupMode = searchParams.get("mode") === "signup";
   const [isLogin, setIsLogin] = useState(!isSignupMode);
   const [showPassword, setShowPassword] = useState(false);
+  const [isOtpMode, setIsOtpMode] = useState(false);
+  const [otp, setOtp] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,6 +35,41 @@ function AuthContent() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (error) setError(null);
+  };
+
+  const handleVerifyOtp = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email, otp }),
+        },
+      );
+      const data = await res.json();
+
+      if (res.status !== 200)
+        throw new Error(data.response[0] || "Verification failed");
+
+      alert("OTP verification succeeded! Please log in.");
+
+      setIsOtpMode(false);
+      setIsLogin(true);
+      setOtp("");
+      setFormData((prev) => ({ ...prev, password: "" }));
+
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete("mode");
+      router.replace(`?${newParams.toString()}`, { scroll: false });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -88,7 +125,7 @@ function AuthContent() {
           );
         } else {
           throw new Error(
-            data.message || "Authentication failed. Please try again.",
+            data.response || "Authentication failed. Please try again.",
           );
         }
       }
@@ -97,14 +134,8 @@ function AuthContent() {
         localStorage.setItem("token", data.token);
         router.push("/dashboard");
       } else {
-        // If user just signed up
-        // Switch the UI to the Login mode so they can sign in with their new account!
-        alert("Account created successfully! Please log in.");
-        setIsLogin(true);
-        setFormData((prev) => ({ ...prev, password: "" }));
-        const newParams = new URLSearchParams(searchParams.toString());
-        newParams.delete("mode");
-        router.replace(`?${newParams.toString()}`, { scroll: false });
+        // Switch the UI to the OTP Mode!
+        setIsOtpMode(true);
       }
     } catch (err: any) {
       setError(err.message);
@@ -138,30 +169,41 @@ function AuthContent() {
             <HustleBuddyLogo className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-medium tracking-tight text-white mb-2">
-            {isLogin ? "Welcome back" : "Create an account"}
+            {isOtpMode
+              ? "Check your email"
+              : isLogin
+                ? "Welcome back"
+                : "Create an account"}
           </h1>
           <p className="text-sm text-slate-500 font-light">
-            {isLogin
-              ? "Enter your details to access your dashboard."
-              : "Start automating your job applications today."}
+            {isOtpMode
+              ? "Enter the 6-digit code we sent you."
+              : isLogin
+                ? "Enter your details to access your dashboard."
+                : "Start automating your job applications today."}
           </p>
         </div>
 
-        <div className="flex flex-col gap-3 mb-6">
-          <SocialButton
-            icon={<ColorfulGoogleIcon />}
-            text="Continue with Google"
-          />
-          <SocialButton icon={<GitHubIcon />} text="Continue with GitHub" />
-        </div>
+        {/* Hide Social Buttons when in OTP Mode */}
+        {!isOtpMode && (
+          <>
+            <div className="flex flex-col gap-3 mb-6">
+              <SocialButton
+                icon={<ColorfulGoogleIcon />}
+                text="Continue with Google"
+              />
+              <SocialButton icon={<GitHubIcon />} text="Continue with GitHub" />
+            </div>
 
-        <div className="flex items-center gap-4 mb-6">
-          <div className="flex-1 h-px bg-white/10" />
-          <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">
-            Or
-          </span>
-          <div className="flex-1 h-px bg-white/10" />
-        </div>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs text-slate-500 font-mono uppercase tracking-wider">
+                Or
+              </span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+          </>
+        )}
 
         {/* Backend Error Display */}
         <AnimatePresence>
@@ -177,132 +219,204 @@ function AuthContent() {
           )}
         </AnimatePresence>
 
-        <form
-          className="flex flex-col gap-4"
-          onSubmit={handleSubmit}
-          noValidate
-        >
-          <AnimatePresence mode="popLayout">
-            {!isLogin && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, y: -10 }}
-                animate={{ opacity: 1, height: "auto", y: 0 }}
-                exit={{ opacity: 0, height: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="overflow-hidden"
+        <AnimatePresence mode="wait">
+          {!isOtpMode ? (
+            <motion.div
+              key="auth-section"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col w-full"
+            >
+              <form
+                className="flex flex-col gap-4"
+                onSubmit={handleSubmit}
+                noValidate
               >
-                <div className="pb-1">
-                  <InputField
-                    label="Full Name"
-                    name="name"
-                    type="text"
-                    placeholder="Aayush Singh"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required={!isLogin}
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <AnimatePresence mode="popLayout">
+                  {!isLogin && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -10 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pb-1">
+                        <InputField
+                          label="Full Name"
+                          name="name"
+                          type="text"
+                          placeholder="Aayush Singh"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required={!isLogin}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-          <InputField
-            label="Email Address"
-            name="email"
-            type="email"
-            placeholder="you@example.com"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+                <InputField
+                  label="Email Address"
+                  name="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
 
-          <InputField
-            label="Password"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Your password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            rightElement={
-              isLogin && (
-                <a
-                  href="#"
-                  className="text-xs text-slate-500 hover:text-white transition-colors"
+                <InputField
+                  label="Password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  rightElement={
+                    isLogin && (
+                      <a
+                        href="#"
+                        className="text-xs text-slate-500 hover:text-white transition-colors"
+                      >
+                        Forgot password?
+                      </a>
+                    )
+                  }
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-slate-400 hover:text-white transition-colors p-1"
+                      aria-label={
+                        showPassword ? "Hide password" : "Show password"
+                      }
+                    >
+                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  }
+                />
+
+                <AnimatePresence mode="popLayout">
+                  {!isLogin && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0, y: -10 }}
+                      animate={{ opacity: 1, height: "auto", y: 0 }}
+                      exit={{ opacity: 0, height: 0, y: -10 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pb-1 flex items-center text-center">
+                        <p className="text-xs text-slate-500 font-light">
+                          Must be 8+ characters with uppercase, lowercase,
+                          number, and special symbol
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="mt-2 h-11 w-full bg-white text-black text-sm font-semibold rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                 >
-                  Forgot password?
-                </a>
-              )
-            }
-            suffix={
+                  {isLoading && (
+                    <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  )}
+                  {isLogin ? "Sign In" : "Create Account"}
+                </button>
+              </form>
+
+              <div className="mt-8 text-center text-sm text-slate-500">
+                {isLogin
+                  ? "Don't have an account? "
+                  : "Already have an account? "}
+                <button
+                  onClick={() => {
+                    const nextState = !isLogin;
+                    setIsLogin(nextState);
+                    setError(null);
+                    const newParams = new URLSearchParams(
+                      searchParams.toString(),
+                    );
+                    if (nextState) {
+                      newParams.delete("mode");
+                    } else {
+                      newParams.set("mode", "signup");
+                    }
+                    router.replace(`?${newParams.toString()}`, {
+                      scroll: false,
+                    });
+                  }}
+                  className="text-white font-medium hover:underline underline-offset-4 transition-all"
+                >
+                  {isLogin ? "Sign up" : "Sign in"}
+                </button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.form
+              key="otp-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-4 w-full"
+              onSubmit={handleVerifyOtp}
+              noValidate
+            >
+              <div className="text-center mb-2">
+                <p className="text-sm text-slate-400">
+                  We sent a 6-digit code to{" "}
+                  <strong className="text-white">{formData.email}</strong>
+                </p>
+              </div>
+
+              <InputField
+                label="Verification Code"
+                name="otp"
+                type="text"
+                placeholder="123456"
+                value={otp}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setOtp(e.target.value)
+                }
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={isLoading || otp.length < 6}
+                className="mt-2 h-11 w-full bg-white text-black text-sm font-semibold rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isLoading && (
+                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                )}
+                Verify Email
+              </button>
+
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-slate-400 hover:text-white transition-colors p-1"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={() => setIsOtpMode(false)}
+                className="mt-4 text-xs font-medium text-slate-500 hover:text-white transition-colors"
               >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                ← Back to sign up
               </button>
-            }
-          />
-
-          <AnimatePresence mode="popLayout">
-            {!isLogin && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, y: -10 }}
-                animate={{ opacity: 1, height: "auto", y: 0 }}
-                exit={{ opacity: 0, height: 0, y: -10 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="overflow-hidden"
-              >
-                <div className="pb-1 flex items-center text-center">
-                  <p className="text-xs text-slate-500 font-light">
-                    Must be 8+ characters with uppercase, lowercase, number, and
-                    special symbol
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="mt-2 h-11 w-full bg-white text-black text-sm font-semibold rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-          >
-            {isLoading && (
-              <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-            )}
-            {isLogin ? "Sign In" : "Create Account"}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center text-sm text-slate-500">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button
-            onClick={() => {
-              const nextState = !isLogin;
-              setIsLogin(nextState);
-              setError(null);
-              const newParams = new URLSearchParams(searchParams.toString());
-              if (nextState) {
-                newParams.delete("mode");
-              } else {
-                newParams.set("mode", "signup");
-              }
-              router.replace(`?${newParams.toString()}`, { scroll: false });
-            }}
-            className="text-white font-medium hover:underline underline-offset-4 transition-all"
-          >
-            {isLogin ? "Sign up" : "Sign in"}
-          </button>
-        </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );
 }
 
-//helper components
+// ============================================================================
+// UI Sub-Components
+// ============================================================================
 
 const InputField = ({
   label,
@@ -368,7 +482,6 @@ const DecorativeBackgrounds = () => (
 // Icons
 // ============================================================================
 
-// The Official Colorful Google 'G' Logo
 const ColorfulGoogleIcon = () => (
   <svg
     viewBox="0 0 24 24"

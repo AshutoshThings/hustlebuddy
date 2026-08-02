@@ -1,0 +1,7 @@
+ALTER TABLE users 
+ADD COLUMN is_verified BOOLEAN DEFAULT FALSE,
+ADD COLUMN otp VARCHAR(6),
+ADD COLUMN otp_expiry TIMESTAMP;
+
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
