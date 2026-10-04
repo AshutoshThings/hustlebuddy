@@ -275,10 +275,16 @@ function AuthContent() {
         {mode === "auth" && (
           <>
             <div className="flex flex-col gap-3 mb-6">
-              <SocialButton
+              <a href="/api/auth/google" className="w-full">
+                <SocialButton
+                  icon={<ColorfulGoogleIcon />}
+                  text="Continue with Google"
+                />
+              </a>
+              {/* <SocialButton
                 icon={<ColorfulGoogleIcon />}
                 text="Continue with Google"
-              />
+              /> */}
               <SocialButton icon={<GitHubIcon />} text="Continue with GitHub" />
             </div>
 
