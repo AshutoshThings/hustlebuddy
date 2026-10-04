@@ -5,6 +5,7 @@ import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { HustleBuddyLogo } from "../components/ui/HustleBuddyLogo";
+import { useAuth } from "@/app/context/AuthContext";
 
 export default function LoginPage() {
   return (
@@ -17,12 +18,20 @@ export default function LoginPage() {
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
 
   const isSignupMode = searchParams.get("mode") === "signup";
   const [isLogin, setIsLogin] = useState(!isSignupMode);
   const [showPassword, setShowPassword] = useState(false);
-  const [isOtpMode, setIsOtpMode] = useState(false);
+
+  // Modes: "auth" | "signup_otp" | "forgot_password" | "reset_otp"
+  const [mode, setMode] = useState<
+    "auth" | "signup_otp" | "forgot_password" | "reset_otp"
+  >("auth");
+
   const [otp, setOtp] = useState("");
+  const [resetEmail, setResetEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -37,17 +46,19 @@ function AuthContent() {
     if (error) setError(null);
   };
 
-  const handleVerifyOtp = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  // 1. Verify Signup OTP
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify`,
+        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/verify`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email: formData.email, otp }),
+          credentials: "include",
         },
       );
       const data = await res.json();
@@ -57,7 +68,7 @@ function AuthContent() {
 
       alert("OTP verification succeeded! Please log in.");
 
-      setIsOtpMode(false);
+      setMode("auth");
       setIsLogin(true);
       setOtp("");
       setFormData((prev) => ({ ...prev, password: "" }));
@@ -72,12 +83,76 @@ function AuthContent() {
     }
   };
 
-  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  // 2. Request Password Reset OTP
+  const handleRequestPasswordReset = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok)
+        throw new Error(data.response || "Failed to send reset code");
+
+      setMode("reset_otp");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 3. Confirm Password Reset with OTP & Zod Password Validation
+  const handleConfirmPasswordReset = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    // Validate password strength using Zod schema before sending
+    const passwordCheck = signupSchema.shape.password.safeParse(newPassword);
+    if (!passwordCheck.success) {
+      setError(passwordCheck.error.issues[0].message);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail, otp, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.response || "Password reset failed");
+
+      alert("Password successfully reset! Please log in.");
+      setMode("auth");
+      setIsLogin(true);
+      setOtp("");
+      setNewPassword("");
+      setResetEmail("");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 4. Submit Login or Signup
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
     const endpoint = isLogin
       ? `${baseUrl}/api/auth/login`
@@ -100,6 +175,7 @@ function AuthContent() {
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       });
 
@@ -129,13 +205,16 @@ function AuthContent() {
           );
         }
       }
+
       if (isLogin) {
-        // If user logged in, save the token
-        localStorage.setItem("token", data.token);
-        router.push("/dashboard");
+        if (data?.accessToken) {
+          login(data.accessToken);
+          router.replace("/dashboard");
+        } else {
+          throw new Error("Access token missing from login response");
+        }
       } else {
-        // Switch the UI to the OTP Mode!
-        setIsOtpMode(true);
+        setMode("signup_otp");
       }
     } catch (err: any) {
       setError(err.message);
@@ -169,23 +248,31 @@ function AuthContent() {
             <HustleBuddyLogo className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-medium tracking-tight text-white mb-2">
-            {isOtpMode
+            {mode === "signup_otp"
               ? "Check your email"
-              : isLogin
-                ? "Welcome back"
-                : "Create an account"}
+              : mode === "forgot_password"
+                ? "Reset password"
+                : mode === "reset_otp"
+                  ? "Enter new password"
+                  : isLogin
+                    ? "Welcome back"
+                    : "Create an account"}
           </h1>
           <p className="text-sm text-slate-500 font-light">
-            {isOtpMode
+            {mode === "signup_otp"
               ? "Enter the 6-digit code we sent you."
-              : isLogin
-                ? "Enter your details to access your dashboard."
-                : "Start automating your job applications today."}
+              : mode === "forgot_password"
+                ? "Enter your email to receive a reset code."
+                : mode === "reset_otp"
+                  ? "Enter the code sent to your email and a secure new password."
+                  : isLogin
+                    ? "Enter your details to access your dashboard."
+                    : "Start automating your job applications today."}
           </p>
         </div>
 
-        {/* Hide Social Buttons when in OTP Mode */}
-        {!isOtpMode && (
+        {/* Hide Social Buttons when in OTP or Forgot Password Modes */}
+        {mode === "auth" && (
           <>
             <div className="flex flex-col gap-3 mb-6">
               <SocialButton
@@ -220,7 +307,7 @@ function AuthContent() {
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {!isOtpMode ? (
+          {mode === "auth" && (
             <motion.div
               key="auth-section"
               initial={{ opacity: 0, x: -20 }}
@@ -278,12 +365,16 @@ function AuthContent() {
                   required
                   rightElement={
                     isLogin && (
-                      <a
-                        href="#"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode("forgot_password");
+                          setError(null);
+                        }}
                         className="text-xs text-slate-500 hover:text-white transition-colors"
                       >
                         Forgot password?
-                      </a>
+                      </button>
                     )
                   }
                   suffix={
@@ -358,9 +449,11 @@ function AuthContent() {
                 </button>
               </div>
             </motion.div>
-          ) : (
+          )}
+
+          {mode === "signup_otp" && (
             <motion.form
-              key="otp-form"
+              key="signup-otp-form"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
@@ -401,10 +494,122 @@ function AuthContent() {
 
               <button
                 type="button"
-                onClick={() => setIsOtpMode(false)}
+                onClick={() => setMode("auth")}
                 className="mt-4 text-xs font-medium text-slate-500 hover:text-white transition-colors"
               >
-                ← Back to sign up
+                ← Back to sign in
+              </button>
+            </motion.form>
+          )}
+
+          {mode === "forgot_password" && (
+            <motion.form
+              key="forgot-password-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-4 w-full"
+              onSubmit={handleRequestPasswordReset}
+              noValidate
+            >
+              <InputField
+                label="Registered Email Address"
+                name="resetEmail"
+                type="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setResetEmail(e.target.value)
+                }
+                required
+              />
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="mt-2 h-11 w-full bg-white text-black text-sm font-semibold rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isLoading && (
+                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                )}
+                Send Reset Code
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMode("auth")}
+                className="mt-4 text-xs font-medium text-slate-500 hover:text-white transition-colors"
+              >
+                ← Back to sign in
+              </button>
+            </motion.form>
+          )}
+
+          {mode === "reset_otp" && (
+            <motion.form
+              key="reset-otp-form"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col gap-4 w-full"
+              onSubmit={handleConfirmPasswordReset}
+              noValidate
+            >
+              <div className="text-center mb-2">
+                <p className="text-sm text-slate-400">
+                  Reset code sent to{" "}
+                  <strong className="text-white">{resetEmail}</strong>
+                </p>
+              </div>
+
+              <InputField
+                label="6-Digit OTP Code"
+                name="otp"
+                type="text"
+                placeholder="123456"
+                value={otp}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setOtp(e.target.value)
+                }
+                required
+              />
+
+              <InputField
+                label="New Password"
+                name="newPassword"
+                type="password"
+                placeholder="New secure password"
+                value={newPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setNewPassword(e.target.value)
+                }
+                required
+              />
+
+              <p className="text-[11px] text-slate-500 font-light -mt-2">
+                Must be 8+ characters with uppercase, lowercase, number, and
+                special symbol
+              </p>
+
+              <button
+                type="submit"
+                disabled={isLoading || otp.length < 6 || !newPassword}
+                className="mt-2 h-11 w-full bg-white text-black text-sm font-semibold rounded-xl hover:scale-[1.02] active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isLoading && (
+                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                )}
+                Update Password
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMode("auth")}
+                className="mt-4 text-xs font-medium text-slate-500 hover:text-white transition-colors"
+              >
+                ← Back to sign in
               </button>
             </motion.form>
           )}

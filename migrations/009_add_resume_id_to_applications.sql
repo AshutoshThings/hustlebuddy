@@ -1,0 +1,2 @@
+ALTER TABLE applications 
+ADD COLUMN resume_id INTEGER REFERENCES resumes(id) ON DELETE SET NULL;

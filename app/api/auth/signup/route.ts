@@ -2,24 +2,23 @@ import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
 import { hashPassword } from "@/app/lib/auth";
 import { signupSchema } from "@/app/lib/validationSchema";
-import { Resend } from "resend";
+import { generateOTP, sendVerificationEmail } from "@/app/lib/emailService";
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const resend = new Resend(process.env.RESEND_API_KEY);
-
-  const validationResult = signupSchema.safeParse(body);
-  if (!validationResult.success) {
-    console.log("Validation errors:", validationResult.error);
-    return NextResponse.json(
-      { response: validationResult.error.issues.map((i) => i.message) },
-      { status: 400 },
-    );
-  }
-
-  const { name, email, password } = validationResult.data;
-
   try {
+    const body = await request.json();
+
+    const validationResult = signupSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { response: validationResult.error.issues.map((i) => i.message) },
+        { status: 400 },
+      );
+    }
+
+    const { name, email, password } = validationResult.data;
+
+    // Check existing user
     const existingUserResult = await pool.query(
       "SELECT id, is_verified FROM users WHERE email = $1",
       [email],
@@ -42,31 +41,15 @@ export async function POST(request: Request) {
         "UPDATE users SET name = $1, password_hash = $2, otp = $3, otp_expiry = $4 WHERE email = $5",
         [name, hashedPassword, otp, otpExpiry, email],
       );
-      console.log("Updated existing unverified user with new OTP.");
     } else {
-      // Brand new user!
       await pool.query(
         "INSERT INTO users (name, email, password_hash, otp, otp_expiry, is_verified) VALUES ($1, $2, $3, $4, $5, $6)",
         [name, email, hashedPassword, otp, otpExpiry, false],
       );
-      console.log("Inserted brand new user.");
     }
 
-    // 5. Send the email via Resend (this runs for both cases above!)
-    await resend.emails.send({
-      from: "HustleBuddy <onboarding@resend.dev>",
-      to: email,
-      subject: "Verify your HustleBuddy Account",
-      html: `
-        <div style="font-family: sans-serif; text-align: center;">
-          <h2>Welcome to HustleBuddy, ${name}!</h2>
-          <p>Your verification code is:</p>
-          <h1 style="letter-spacing: 5px; color: #000; background: #f4f4f4; padding: 12px; border-radius: 8px;">
-            ${otp}
-          </h1>
-          <p>This code expires in 10 minutes.</p>
-        </div>`,
-    });
+    // Send email using modular service
+    await sendVerificationEmail(email, name, otp);
 
     return NextResponse.json(
       { response: "OTP sent successfully", requiresOTP: true },
@@ -79,8 +62,4 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-}
-
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 }
