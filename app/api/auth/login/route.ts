@@ -37,8 +37,6 @@ export async function POST(request: Request) {
       email,
     ]);
     if (result.rows.length === 0) {
-      // Same bcrypt cost as a real check, so response time doesn't reveal
-      // whether the email exists.
       await verifyPassword(password, DUMMY_HASH);
       console.log("Login failed: unknown email");
       return NextResponse.json(
@@ -57,10 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Only after the password is right, so this can't be used to probe
-    // which emails are registered-but-unverified.
     if (!user.is_verified) {
-      // use the column your verify route actually sets
       console.log("Login blocked: unverified user", user.id);
       return NextResponse.json(
         { response: "Please verify your email before logging in" },
@@ -82,6 +77,8 @@ export async function POST(request: Request) {
 
     console.log("User logged in successfully: ", user.id);
     const response = NextResponse.json({ accessToken }, { status: 200 });
+
+    // Set Refresh Token Cookie (30 days)
     response.cookies.set("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -89,6 +86,16 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 30,
       path: "/",
     });
+
+    // Set Access Token Cookie (15 minutes) - Crucial for server/proxy session checks
+    response.cookies.set("accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 15,
+      path: "/",
+    });
+
     return response;
   } catch (error) {
     console.error("Error during login: ", error);

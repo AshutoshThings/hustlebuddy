@@ -1,3 +1,4 @@
+import { ExtensionBridge } from "./components/ExtensionBridge";
 import "./globals.css";
 import { AuthProvider } from "@/app/context/AuthContext";
 export default function RootLayout({
@@ -8,7 +9,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <ExtensionBridge />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

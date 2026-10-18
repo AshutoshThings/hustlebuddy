@@ -24,10 +24,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const initialRefresh = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
-    // Strict Mode runs effects twice in dev. Reuse one in-flight request so the
-    // refresh token rotates once and `loading` flips only after it settles.
     if (!initialRefresh.current) {
-      initialRefresh.current = fetch("/api/auth/refresh", { method: "POST" })
+      initialRefresh.current = fetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+      })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => (data?.accessToken as string | undefined) ?? null)
         .catch(() => null);
@@ -40,7 +41,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (err) {
       console.error("Logout failed", err);
     }

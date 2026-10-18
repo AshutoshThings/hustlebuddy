@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "HustleBuddy Job Tracker",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "description": "Detect the job you're looking at and log it to HustleBuddy.",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": ["http://localhost:3000/*"],
@@ -21,8 +21,18 @@
   },
   "content_scripts": [
     {
-      "matches": ["http://localhost:3000/extension-auth*"],
-      "js": ["auth-relay.js"],
+      "matches": [
+        "https://*.linkedin.com/jobs/*",
+        "https://*.unstop.com/*",
+        "https://*.internshala.com/*",
+        "https://*.naukri.com/*"
+      ],
+      "js": ["extract.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["http://localhost:3000/*"],
+      "js": ["app-relay.js"],
       "run_at": "document_idle"
     }
   ]

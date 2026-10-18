@@ -8,32 +8,76 @@
         box-sizing: border-box;
       }
       body {
-        width: 320px;
+        width: 340px;
         margin: 0;
-        padding: 16px;
-        background: #0a0a0a;
+        background: #000;
         color: #e5e5e5;
         font:
-          13px/1.4 -apple-system,
+          13px/1.45 -apple-system,
           BlinkMacSystemFont,
           "Segoe UI",
           Roboto,
           sans-serif;
       }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: #fff;
+        letter-spacing: -0.01em;
+      }
+      .brand img {
+        width: 26px;
+        height: 26px;
+        border-radius: 7px;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        border: 1px solid #2a2a2a;
+        color: #888;
+        font-size: 11px;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #555;
+      }
+      .pill.on {
+        color: #d4d4d4;
+      }
+      .pill.on .dot {
+        background: #34d399;
+      }
+      main {
+        padding: 16px;
+      }
       h1 {
-        font-size: 15px;
-        margin: 0 0 12px;
+        margin: 0 0 4px;
+        font-size: 14px;
         color: #fff;
         font-weight: 600;
       }
       p {
-        margin: 0 0 12px;
-        color: #999;
+        margin: 0 0 14px;
+        color: #888;
       }
       label {
         display: block;
         margin-bottom: 10px;
-        color: #999;
+        color: #888;
         font-size: 12px;
       }
       input,
@@ -41,10 +85,10 @@
         display: block;
         width: 100%;
         margin-top: 4px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        border: 1px solid #2a2a2a;
-        background: #111;
+        padding: 9px 11px;
+        border-radius: 10px;
+        border: 1px solid #262626;
+        background: #0d0d0d;
         color: #fff;
         font: inherit;
       }
@@ -53,23 +97,43 @@
         outline: none;
         border-color: #bbb;
       }
-      button.primary {
+      .primary {
         width: 100%;
-        padding: 9px;
+        padding: 10px;
         border: 0;
-        border-radius: 8px;
+        border-radius: 10px;
         background: #fff;
         color: #000;
         font: inherit;
         font-weight: 600;
         cursor: pointer;
       }
-      button.primary:disabled {
+      .primary:disabled {
         opacity: 0.5;
         cursor: default;
       }
-      button.link {
-        margin-top: 10px;
+      .note {
+        margin-bottom: 12px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+      }
+      .note.info {
+        background: #111;
+        border: 1px solid #262626;
+        color: #aaa;
+      }
+      .note.warn {
+        background: #141414;
+        border: 1px solid #333;
+        color: #bbb;
+      }
+      .foot {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 14px;
+      }
+      .link {
         padding: 0;
         background: none;
         border: 0;
@@ -77,25 +141,13 @@
         font: inherit;
         cursor: pointer;
       }
-      button.link:hover {
+      .link:hover {
         color: #fff;
-      }
-      .notice {
-        margin-bottom: 12px;
-        padding: 8px 10px;
-        border-radius: 8px;
-        background: #151515;
-        border: 1px solid #2a2a2a;
-        color: #bbb;
-        font-size: 12px;
-      }
-      .hidden {
-        display: none;
       }
       #statusMsg {
         margin: 10px 0 0;
         min-height: 16px;
-        color: #999;
+        color: #888;
       }
       #statusMsg.success {
         color: #34d399;
@@ -103,41 +155,61 @@
       #statusMsg.error {
         color: #f87171;
       }
+      .hidden {
+        display: none;
+      }
     </style>
   </head>
   <body>
-    <div id="signedOut" class="hidden">
-      <h1>HustleBuddy</h1>
-      <p id="signedOutMsg"></p>
-      <button id="connectBtn" class="primary">Connect account</button>
-    </div>
+    <header>
+      <div class="brand"><img src="icons/icon48.png" alt="" />HustleBuddy</div>
+      <span id="pill" class="pill"
+        ><span class="dot"></span><span id="pillText">Checking…</span></span
+      >
+    </header>
 
-    <div id="signedIn" class="hidden">
-      <h1>Track this application</h1>
-      <div id="noticeBox" class="notice hidden">
-        Details detected from this page. Check them before saving.
+    <main>
+      <div id="signedOut" class="hidden">
+        <h1>Connect your account</h1>
+        <p id="signedOutMsg"></p>
+        <button id="connectBtn" class="primary">Connect account</button>
       </div>
-      <form id="jobForm">
-        <label>Company <input id="company" required /></label>
-        <label>Role <input id="role" required /></label>
-        <label
-          >Status
-          <select id="status">
-            <option value="applied">Applied</option>
-            <option value="interviewing">Interviewing</option>
-            <option value="offered">Offered</option>
-            <option value="rejected">Rejected</option>
-          </select>
-        </label>
-        <button id="saveBtn" type="submit" class="primary">
-          Save to HustleBuddy
-        </button>
-        <p id="statusMsg"></p>
-      </form>
-      <button id="disconnectBtn" class="link">Disconnect</button>
-    </div>
+
+      <div id="signedIn" class="hidden">
+        <h1>Track this application</h1>
+        <div id="pendingNote" class="note warn hidden"></div>
+        <div id="noticeBox" class="note info hidden"></div>
+        <div id="hint" class="note warn hidden">
+          Couldn't read details from this page. Enter them below.
+        </div>
+
+        <form id="jobForm">
+          <label>Company <input id="company" required /></label>
+          <label>Role <input id="role" required /></label>
+          <label
+            >Status
+            <select id="status">
+              <option value="applied">Applied</option>
+              <option value="interviewing">Interviewing</option>
+              <option value="offered">Offered</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </label>
+          <button id="saveBtn" type="submit" class="primary">
+            Save to HustleBuddy
+          </button>
+          <p id="statusMsg"></p>
+        </form>
+
+        <div class="foot">
+          <button id="openDashboard" class="link">Open dashboard</button>
+          <button id="disconnectBtn" class="link">Disconnect</button>
+        </div>
+      </div>
+    </main>
 
     <script src="config.js"></script>
+    <script src="extract.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

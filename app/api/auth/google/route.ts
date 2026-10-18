@@ -3,8 +3,7 @@ import { NextResponse } from "next/server";
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
-  // This will print to your terminal when you click the Google sign-in button
-  console.log("Loaded Client ID:", clientId ? "Found ✅" : "Missing ❌");
+  console.log("Loaded Client ID:", clientId ? "Found" : "Missing");
 
   if (!clientId) {
     return NextResponse.json(

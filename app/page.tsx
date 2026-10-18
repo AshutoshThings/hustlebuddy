@@ -5,6 +5,7 @@ import { FeaturesSection } from "./components/landing/FeaturesSection";
 import { PrivacySection } from "./components/landing/PrivacySection";
 import { FAQSection } from "./components/landing/FAQSection";
 import { CTAFooterSection } from "./components/landing/CTAFooterSection";
+import { RoadmapSection } from "./components/landing/RoadmapSection";
 
 export default function Home() {
   return (
@@ -13,6 +14,7 @@ export default function Home() {
       <BrowserDemo />
       <StatsSection />
       <FeaturesSection />
+      <RoadmapSection />
       <PrivacySection />
       <FAQSection />
       <CTAFooterSection />
