@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       [userId, cleanCompany, cleanRole, cleanStatus, cleanSource, cleanNotes],
     );
     const newApp = insertResponse.rows[0];
-    broadcastNewApplication(userId, newApp);
+    broadcastNewApplication(Number(userId), newApp);
 
     return NextResponse.json(
       { application: newApp, duplicate: false },
