@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion } from "framer-motion"; // Or "motion/react" based on your project config
 import { Application } from "@/app/types/application";
 
 type KanbanCardProps = {
@@ -12,6 +12,7 @@ type KanbanCardProps = {
 export default function KanbanCard({ app, onEdit, onDelete }: KanbanCardProps) {
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData("appId", app.id);
+    e.dataTransfer.setData("text/plain", app.id);
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -34,13 +35,13 @@ export default function KanbanCard({ app, onEdit, onDelete }: KanbanCardProps) {
           {app.company}
         </h4>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={(e) => {
               e.stopPropagation();
               onEdit(app);
             }}
-            className="text-slate-400 hover:text-white p-1 text-xs"
+            className="text-slate-400 hover:text-white text-xs font-medium"
             title="Edit application"
           >
             Edit
@@ -48,9 +49,9 @@ export default function KanbanCard({ app, onEdit, onDelete }: KanbanCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(app); // <--- Triggers parent deletion flow via custom modal
+              onDelete(app);
             }}
-            className="text-slate-400 hover:text-red-400 p-1 text-xs"
+            className="text-red-400 hover:text-red-300 text-xs font-medium"
             title="Delete application"
           >
             Delete
@@ -60,9 +61,9 @@ export default function KanbanCard({ app, onEdit, onDelete }: KanbanCardProps) {
 
       <p className="text-xs text-slate-400 mb-4 line-clamp-1">{app.role}</p>
 
-      <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-white/5">
-        <span>{app.date}</span>
-        <span className="capitalize px-2 py-0.5 rounded bg-white/5 text-slate-300 text-[10px]">
+      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-white/5">
+        <span>Applied on {app.date}</span>
+        <span className="capitalize px-2 py-0.5 rounded bg-white/5 text-slate-300">
           {app.status}
         </span>
       </div>

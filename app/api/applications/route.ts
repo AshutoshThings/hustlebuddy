@@ -2,13 +2,26 @@ import pool from "@/app/lib/db";
 import { getAuthUser } from "@/app/lib/getAuthUser";
 import { NextResponse } from "next/server";
 import { applicationSchema } from "@/app/lib/validationSchema";
+import { broadcastNewApplication } from "./stream/route";
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders() });
+}
 
 export async function GET(request: Request) {
   const auth = await getAuthUser(request);
   if (!auth) {
     return NextResponse.json(
       { response: "session expired, login again" },
-      { status: 401 },
+      { status: 401, headers: corsHeaders() },
     );
   }
   const { userId } = auth;
@@ -18,15 +31,18 @@ export async function GET(request: Request) {
       [userId],
     );
 
-    return NextResponse.json({
-      applications: userApplications.rows,
-    });
+    return NextResponse.json(
+      {
+        applications: userApplications.rows,
+      },
+      { headers: corsHeaders() },
+    );
   } catch (e) {
     console.error(e);
 
     return NextResponse.json(
       { response: "Internal server error" },
-      { status: 500 },
+      { status: 500, headers: corsHeaders() },
     );
   }
 }
@@ -38,7 +54,7 @@ export async function POST(request: Request) {
       {
         response: "Session expired. Please log in again.",
       },
-      { status: 401 },
+      { status: 401, headers: corsHeaders() },
     );
   }
   const { userId } = auth;
@@ -48,7 +64,7 @@ export async function POST(request: Request) {
       {
         response: "session expired",
       },
-      { status: 401 },
+      { status: 401, headers: corsHeaders() },
     );
   }
   try {
@@ -69,23 +85,49 @@ export async function POST(request: Request) {
         {
           response: "required all valid values",
         },
-        { status: 400 },
+        { status: 400, headers: corsHeaders() },
       );
     }
+
+    const {
+      company: cleanCompany,
+      role: cleanRole,
+      status: cleanStatus,
+      source: cleanSource,
+      notes: cleanNotes,
+    } = validatedBody.data;
+
+    // 1. CHECK FOR DUPLICATES: See if the user already has this exact role at this company
+    const existingCheck = await pool.query(
+      `SELECT id FROM applications 
+       WHERE user_id = $1 
+         AND LOWER(company) = LOWER($2) 
+         AND LOWER(role) = LOWER($3) 
+         AND deleted_at IS NULL`,
+      [userId, cleanCompany.trim(), cleanRole.trim()],
+    );
+
+    if (existingCheck.rows.length > 0) {
+      return NextResponse.json(
+        {
+          response: "Application already exists in your tracker!",
+          duplicate: true,
+        },
+        { status: 200, headers: corsHeaders() },
+      );
+    }
+
+    // 2. INSERT IF NOT A DUPLICATE
     const insertResponse = await pool.query(
       "INSERT into applications (user_id, company, role, status, source, notes) values ($1, $2, $3, $4, $5, $6) RETURNING * ",
-      [
-        userId,
-        validatedBody.data.company,
-        validatedBody.data.role,
-        validatedBody.data.status,
-        validatedBody.data.source,
-        validatedBody.data.notes,
-      ],
+      [userId, cleanCompany, cleanRole, cleanStatus, cleanSource, cleanNotes],
     );
+    const newApp = insertResponse.rows[0];
+    broadcastNewApplication(userId, newApp);
+
     return NextResponse.json(
-      { application: insertResponse.rows[0] },
-      { status: 201 },
+      { application: newApp, duplicate: false },
+      { status: 201, headers: corsHeaders() },
     );
   } catch (e) {
     console.error(
@@ -97,7 +139,7 @@ export async function POST(request: Request) {
       {
         response: "application failed to save successfuly",
       },
-      { status: 500 },
+      { status: 500, headers: corsHeaders() },
     );
   }
 }

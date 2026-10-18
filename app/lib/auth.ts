@@ -1,8 +1,11 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+export const SALT_ROUNDS = 10;
+export const DUMMY_HASH = bcrypt.hashSync("not-a-real-password", SALT_ROUNDS);
+
 export async function hashPassword(password: string): Promise<string> {
-  const hash = await bcrypt.hash(password, 10);
+  const hash = await bcrypt.hash(password, SALT_ROUNDS);
   return hash;
 }
 

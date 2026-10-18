@@ -13,7 +13,7 @@ import TableView from "@/app/components/dashboard/TableView";
 import NewApplicationForm from "@/app/components/dashboard/NewApplicationForm";
 import ConfirmModal from "@/app/components/dashboard/ConfirmModal";
 import ResumesSection from "@/app/components/dashboard/ResumesSection";
-import SettingsSection from "@/app/components/dashboard/SettingsSection"; // <--- Import SettingsSection
+import SettingsSection from "@/app/components/dashboard/SettingsSection";
 
 function formatAppliedAt(value: string | Date): string {
   const d = new Date(value);
@@ -57,6 +57,7 @@ export default function DashboardPage() {
     }
   }, []);
 
+  // 1. Initial Fetch on Mount & Auth Check
   useEffect(() => {
     if (authLoading) return;
 
@@ -74,7 +75,9 @@ export default function DashboardPage() {
             company: row.company,
             role: row.role,
             status: row.status,
-            date: formatAppliedAt(row.applied_at),
+            date: formatAppliedAt(
+              row.applied_at || row.created_at || new Date(),
+            ),
           }),
         );
 
@@ -83,6 +86,47 @@ export default function DashboardPage() {
       .catch((err) => setError(err.message))
       .finally(() => setIsLoading(false));
   }, [authLoading, accessToken, router]);
+
+  // 2. Real-Time Server-Sent Events (SSE) Stream Listener with Token Query Parameter
+  useEffect(() => {
+    if (!accessToken) return;
+
+    // Pass accessToken as a query parameter to bypass EventSource header limitations and 401 errors
+    const eventSource = new EventSource(
+      `/api/applications/stream?token=${accessToken}`,
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const rawApp = JSON.parse(event.data);
+        const newApp: Application = {
+          id: String(rawApp.id),
+          company: rawApp.company,
+          role: rawApp.role,
+          status: rawApp.status,
+          date: formatAppliedAt(
+            rawApp.applied_at || rawApp.created_at || new Date(),
+          ),
+        };
+
+        setApplications((prev) => {
+          // Prevent duplicates if already present in state
+          if (prev.some((app) => app.id === newApp.id)) return prev;
+          return [newApp, ...prev]; // Prepend new entry instantly without refreshing!
+        });
+      } catch (err) {
+        console.error("Failed to parse real-time event stream payload:", err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [accessToken]);
 
   const handleStatusChange = async (
     appId: string,

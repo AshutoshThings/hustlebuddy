@@ -6,47 +6,53 @@ import {
   ReactNode,
   useState,
   useEffect,
+  useRef,
 } from "react";
 
 type AuthContextType = {
   accessToken: string | null;
   loading: boolean;
   login: (token: string) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [acessToken, setAcessToken] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const initialRefresh = useRef<Promise<string | null> | null>(null);
 
   useEffect(() => {
-    fetch("/api/auth/refresh", { method: "POST" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.accessToken) setAcessToken(data.accessToken);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    // Strict Mode runs effects twice in dev. Reuse one in-flight request so the
+    // refresh token rotates once and `loading` flips only after it settles.
+    if (!initialRefresh.current) {
+      initialRefresh.current = fetch("/api/auth/refresh", { method: "POST" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => (data?.accessToken as string | undefined) ?? null)
+        .catch(() => null);
+    }
+    initialRefresh.current.then((token) => {
+      if (token) setAccessToken(token);
+      setLoading(false);
+    });
   }, []);
 
   const logout = async () => {
     try {
-      // Call backend route to destroy the refresh token cookie
       await fetch("/api/auth/logout", { method: "POST" });
     } catch (err) {
       console.error("Logout failed", err);
     }
-    setAcessToken(null);
+    setAccessToken(null);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        accessToken: acessToken,
+        accessToken,
         loading,
-        login: (token) => setAcessToken(token),
+        login: (token) => setAccessToken(token),
         logout,
       }}
     >
@@ -54,10 +60,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
   return ctx;
 }
-
-// create context for the access token and a function to update it

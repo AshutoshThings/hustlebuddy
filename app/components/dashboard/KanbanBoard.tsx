@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
 import { Application, ApplicationStatus } from "@/app/types/application";
+import KanbanCard from "./KanbanCard"; // Import your KanbanCard component
 
 type KanbanBoardProps = {
   applications: Application[];
@@ -163,12 +163,6 @@ export default function KanbanBoard({
     });
   }, [applications, timeFilter]);
 
-  const handleDragStart = (e: React.DragEvent, appId: string) => {
-    setDraggingAppId(appId);
-    e.dataTransfer.setData("text/plain", appId);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
@@ -176,7 +170,11 @@ export default function KanbanBoard({
 
   const handleDrop = (e: React.DragEvent, targetStatus: ApplicationStatus) => {
     e.preventDefault();
-    const appId = e.dataTransfer.getData("text/plain") || draggingAppId;
+    // Support both dataTransfer keys ("appId" from KanbanCard or text/plain)
+    const appId =
+      e.dataTransfer.getData("appId") ||
+      e.dataTransfer.getData("text/plain") ||
+      draggingAppId;
     if (appId) {
       onStatusChange(appId, targetStatus);
     }
@@ -295,52 +293,14 @@ export default function KanbanBoard({
                   <div className="flex items-center justify-center flex-1 h-32 border border-dashed border-white/5 rounded-xl text-[11px] text-slate-600">
                     Drop applications here
                   </div>
-                ) : (
+                ) : colApps.name ? null : (
                   colApps.map((app) => (
-                    <motion.div
+                    <KanbanCard
                       key={app.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, app.id)}
-                      className={`bg-[#050505] border border-white/10 rounded-xl p-4 flex flex-col gap-3 hover:border-white/20 transition-colors group shadow-sm cursor-grab active:cursor-grabbing ${
-                        draggingAppId === app.id
-                          ? "opacity-40 border-dashed border-white"
-                          : ""
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="text-xs font-medium text-white truncate max-w-[160px]">
-                            {app.company}
-                          </h4>
-                          <p className="text-[11px] text-slate-400 truncate max-w-[160px]">
-                            {app.role}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => onEdit(app)}
-                            className="text-slate-400 hover:text-white text-[11px] font-medium"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => onDelete(app)}
-                            className="text-red-400 hover:text-red-300 text-[11px] font-medium"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-slate-500">
-                        <span>Applied on {app.date}</span>
-                      </div>
-                    </motion.div>
+                      app={app}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                    />
                   ))
                 )}
               </div>
