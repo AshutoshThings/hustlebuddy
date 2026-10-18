@@ -14,12 +14,12 @@ type SortField = "company" | "role" | "status" | "date";
 type SortDirection = "asc" | "desc";
 type StatusFilter = "all" | ApplicationStatus;
 
-const STATUS_COLORS: Record<ApplicationStatus, string> = {
+const STATUS_COLORS: Record<string, string> = {
   applied: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  interviewing: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-  offered: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+  interviewing: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  offer: "bg-green-500/10 text-green-400 border-green-500/20",
+  offered: "bg-green-500/10 text-green-400 border-green-500/20",
   rejected: "bg-red-500/10 text-red-400 border-red-500/20",
-  // Fallback for any unknown status value
   unknown: "bg-gray-500/10 text-gray-400 border-gray-500/20",
 };
 
@@ -73,15 +73,20 @@ export default function TableView({
       }
 
       if (sortField === "status") {
-        // Explicit separate weight tables to guarantee correct placement
         const weights =
           sortDirection === "asc"
-            ? { offered: 1, interviewing: 2, applied: 3, rejected: 4 } // Offered First
-            : { interviewing: 1, offered: 2, applied: 3, rejected: 4 }; // Interviewing First
+            ? { offer: 1, offered: 1, interviewing: 2, applied: 3, rejected: 4 }
+            : {
+                interviewing: 1,
+                offer: 2,
+                offered: 2,
+                applied: 3,
+                rejected: 4,
+              };
 
         valA = weights[a.status as ApplicationStatus] || 99;
         valB = weights[b.status as ApplicationStatus] || 99;
-        return valA - valB; // Always ascending numeric weight order
+        return valA - valB;
       }
 
       if (sortField === "company" || sortField === "role") {
@@ -125,7 +130,7 @@ export default function TableView({
               "all",
               "applied",
               "interviewing",
-              "offered",
+              "offer",
               "rejected",
             ] as StatusFilter[]
           ).map((status) => (
@@ -314,12 +319,12 @@ export default function TableView({
                             )
                           }
                           className={`capitalize px-2.5 py-1 rounded-lg border text-[11px] font-medium bg-[#050505] focus:outline-none cursor-pointer ${
-                            STATUS_COLORS[statusKey]
+                            STATUS_COLORS[statusKey] || STATUS_COLORS.unknown
                           }`}
                         >
                           <option value="applied">Applied</option>
                           <option value="interviewing">Interviewing</option>
-                          <option value="offered">Offered</option>
+                          <option value="offer">Offer</option>
                           <option value="rejected">Rejected</option>
                         </select>
                       </td>

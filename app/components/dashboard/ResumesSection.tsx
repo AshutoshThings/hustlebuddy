@@ -265,15 +265,7 @@ export default function ResumesSection() {
       {deletingResume && (
         <ConfirmModal
           title="Delete Resume"
-          message={
-            <>
-              Are you sure you want to permanently delete the resume for{" "}
-              <span className="text-white font-medium">
-                {deletingResume.role_targeted || deletingResume.file_name}
-              </span>
-              ? This will remove the file permanently from storage.
-            </>
-          }
+          message="Are you sure you want to permanently delete this resume? This action cannot be undone."
           itemName={deletingResume.role_targeted || deletingResume.file_name}
           onClose={() => setDeletingResume(null)}
           onConfirm={handleConfirmDelete}

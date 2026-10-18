@@ -20,7 +20,7 @@ export default function KanbanCard({ app, onEdit, onDelete }: KanbanCardProps) {
     <motion.div
       layoutId={app.id}
       draggable={true}
-      onDragStart={handleDragStart}
+      onDragStart={handleDragStart as any}
       whileDrag={{
         scale: 1.05,
         rotate: 2,

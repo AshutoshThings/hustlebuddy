@@ -293,7 +293,7 @@ export default function KanbanBoard({
                   <div className="flex items-center justify-center flex-1 h-32 border border-dashed border-white/5 rounded-xl text-[11px] text-slate-600">
                     Drop applications here
                   </div>
-                ) : colApps.name ? null : (
+                ) : colApps.length === 0 ? null : (
                   colApps.map((app) => (
                     <KanbanCard
                       key={app.id}
