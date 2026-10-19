@@ -6,7 +6,6 @@ export async function POST() {
     { status: 200 },
   );
 
-  // Clear the refresh token cookie by expiring it immediately
   response.cookies.set({
     name: "refreshToken",
     value: "",
@@ -14,7 +13,16 @@ export async function POST() {
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     path: "/",
-    maxAge: 0, // <--- Destroys the cookie
+    maxAge: 0,
+  });
+  response.cookies.set({
+    name: "accessToken",
+    value: "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    path: "/",
+    maxAge: 0,
   });
 
   return response;

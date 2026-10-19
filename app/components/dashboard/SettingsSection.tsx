@@ -5,6 +5,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useApiClient } from "@/app/hooks/useApiClient";
 import { Application } from "@/app/types/application";
 import { signupSchema } from "@/app/lib/validationSchema"; // <--- Import validation schema
+import { useRouter } from "next/navigation";
 
 type SettingsSectionProps = {
   applications: Application[];
@@ -23,6 +24,12 @@ export default function SettingsSection({
   onRefreshData,
 }: SettingsSectionProps) {
   const { logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    logout();
+    router.replace("/auth");
+  };
   const api = useApiClient();
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -195,7 +202,7 @@ export default function SettingsSection({
         <div className="flex items-center justify-between pb-2 border-b border-white/5">
           <h2 className="text-sm font-medium text-white">Account Profile</h2>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-medium transition-colors"
           >
             Logout
