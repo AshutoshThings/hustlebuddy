@@ -97,15 +97,6 @@ export function useApiClient() {
         method: "DELETE",
       }),
     getUserProfile: () => request("/api/user"),
-
-    requestPasswordOtp: () =>
-      request("/api/auth/request-password-otp", { method: "POST" }),
-
-    updatePassword: (otp: string, newPassword: string) =>
-      request("/api/auth/update-password", {
-        method: "POST",
-        body: JSON.stringify({ otp, newPassword }),
-      }),
     logoutUser: () => request("/api/auth/logout", { method: "POST" }),
   };
 }

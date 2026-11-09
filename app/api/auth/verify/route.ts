@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const { email, otp } = await request.json();
-    const trimmedOtp = otp.trim(); // Trim whitespace from the OTP
+    const trimmedOtp = String(otp ?? "").trim();
 
     // 1. Fetch user by email
     const userResult = await pool.query(
