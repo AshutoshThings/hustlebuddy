@@ -2,6 +2,7 @@ import pool from "@/app/lib/db";
 import { getAuthUser } from "@/app/lib/getAuthUser";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { randomUUID } from "crypto";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const uniqueSuffix = randomUUID();
     const sanitizedFileName = file.name.replace(/\s+/g, "_");
     const filePath = `${userId}/${uniqueSuffix}-${sanitizedFileName}`;
 

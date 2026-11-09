@@ -2,7 +2,8 @@ import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
 import { hashPassword } from "@/app/lib/auth";
 import { signupSchema } from "@/app/lib/validationSchema";
-import { generateOTP, sendVerificationEmail } from "@/app/lib/emailService";
+import { sendVerificationEmail } from "@/app/lib/emailService";
+import { generateOTP } from "@/app/lib/otp";
 
 export async function POST(request: Request) {
   try {

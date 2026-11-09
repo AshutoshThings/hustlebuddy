@@ -1,6 +1,7 @@
 import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
-import { generateOTP, sendPasswordResetEmail } from "@/app/lib/emailService";
+import { sendPasswordResetEmail } from "@/app/lib/emailService";
+import { generateOTP } from "@/app/lib/otp";
 
 export async function POST(request: Request) {
   try {

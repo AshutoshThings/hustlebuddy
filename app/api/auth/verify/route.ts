@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const { email, otp } = await request.json();
+    const trimmedOtp = otp.trim(); // Trim whitespace from the OTP
 
     // 1. Fetch user by email
     const userResult = await pool.query(
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Check if OTP matches and hasn't expired
-    if (user.otp !== otp || new Date() > new Date(user.otp_expiry)) {
+    if (user.otp !== trimmedOtp || new Date() > new Date(user.otp_expiry)) {
       return NextResponse.json(
         { response: ["Invalid or expired OTP"] },
         { status: 400 },

@@ -6,8 +6,10 @@ import { signupSchema } from "@/app/lib/validationSchema"; // <--- Import signup
 export async function POST(request: Request) {
   try {
     const { email, otp, newPassword } = await request.json();
+    const trimmedOtp = otp.trim(); // Trim whitespace from the OTP
+    const trimmedNewPassword = newPassword.trim(); // Trim whitespace from the new password
 
-    if (!email || !otp || !newPassword) {
+    if (!email || !trimmedOtp || !trimmedNewPassword) {
       return NextResponse.json(
         { response: "Email, OTP, and new password are required" },
         { status: 400 },
@@ -16,7 +18,7 @@ export async function POST(request: Request) {
 
     // 1. Enforce strict password rules using Zod server-side
     const passwordValidation =
-      signupSchema.shape.password.safeParse(newPassword);
+      signupSchema.shape.password.safeParse(trimmedNewPassword);
     if (!passwordValidation.success) {
       return NextResponse.json(
         { response: passwordValidation.error.issues[0].message },
@@ -31,7 +33,7 @@ export async function POST(request: Request) {
     );
     const user = userResult.rows[0];
 
-    if (!user || !user.otp || user.otp !== otp) {
+    if (!user || !user.otp || user.otp !== trimmedOtp) {
       return NextResponse.json(
         { response: "Invalid OTP code" },
         { status: 400 },
@@ -46,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // 3. Hash new password and update database
-    const hashedPassword = await hashPassword(newPassword);
+    const hashedPassword = await hashPassword(trimmedNewPassword);
 
     await pool.query(
       "UPDATE users SET password_hash = $1, otp = NULL, otp_expiry = NULL WHERE email = $2",
