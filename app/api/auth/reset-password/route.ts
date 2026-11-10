@@ -1,11 +1,15 @@
 import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
-import { hashPassword } from "@/app/lib/auth";
-import { signupSchema } from "@/app/lib/validationSchema"; // <--- Import signupSchema
+import { cookies } from "next/headers";
+import { hashPassword, verifyToken } from "@/app/lib/auth";
+import { hashToken } from "@/app/lib/authCookies";
+import { checkOtp, OTP_ERROR_MESSAGES } from "@/app/lib/otp";
+import { signupSchema } from "@/app/lib/validationSchema";
 
 export async function POST(request: Request) {
   try {
-    const { email, otp, newPassword } = await request.json();
+    const { email: rawEmail, otp, newPassword } = await request.json();
+    const email = String(rawEmail ?? "").trim().toLowerCase();
     const trimmedOtp = String(otp ?? "").trim();
 
     if (!email || !trimmedOtp || !newPassword) {
@@ -15,7 +19,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 1. Enforce strict password rules using Zod server-side
     const passwordValidation =
       signupSchema.shape.password.safeParse(newPassword);
     if (!passwordValidation.success) {
@@ -25,34 +28,50 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Fetch user and verify OTP
-    const userResult = await pool.query(
-      "SELECT id, otp, otp_expiry FROM users WHERE email = $1",
-      [email],
-    );
-    const user = userResult.rows[0];
-
-    if (!user || !user.otp || user.otp !== trimmedOtp) {
+    const check = await checkOtp(email, trimmedOtp, "reset");
+    if (check.status !== "ok") {
       return NextResponse.json(
-        { response: "Invalid OTP code" },
+        { response: OTP_ERROR_MESSAGES[check.status] },
         { status: 400 },
       );
     }
+    const userId = check.userId;
 
-    if (new Date() > new Date(user.otp_expiry)) {
-      return NextResponse.json(
-        { response: "OTP has expired" },
-        { status: 400 },
-      );
-    }
-
-    // 3. Hash new password and update database
     const hashedPassword = await hashPassword(newPassword);
 
-    await pool.query(
-      "UPDATE users SET password_hash = $1, otp = NULL, otp_expiry = NULL WHERE email = $2",
-      [hashedPassword, email],
-    );
+    // Keep the session making this request (changing the password from
+    // Settings), if it belongs to this user; sign out every other session.
+    const currentRefresh = (await cookies()).get("refreshToken")?.value;
+    const currentPayload = currentRefresh
+      ? await verifyToken(currentRefresh, process.env.JWT_REFRESH_SECRET!)
+      : null;
+    const keepHash =
+      currentRefresh && currentPayload?.userId === userId
+        ? hashToken(currentRefresh)
+        : null;
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `UPDATE users SET password_hash = $1, otp = NULL, otp_expiry = NULL,
+           otp_purpose = NULL, otp_attempts = 0
+         WHERE id = $2`,
+        [hashedPassword, userId],
+      );
+      await client.query(
+        `UPDATE refresh_tokens SET revoked = true
+         WHERE user_id = $1 AND revoked = false
+           AND ($2::text IS NULL OR token_hash <> $2)`,
+        [userId, keepHash],
+      );
+      await client.query("COMMIT");
+    } catch (e) {
+      await client.query("ROLLBACK");
+      throw e;
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json(
       { response: "Password updated successfully" },

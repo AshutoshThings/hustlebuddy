@@ -57,7 +57,11 @@ function AuthContent() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: formData.email, otp }),
+          body: JSON.stringify({
+            email: formData.email,
+            otp,
+            password: formData.password,
+          }),
           credentials: "include",
         },
       );

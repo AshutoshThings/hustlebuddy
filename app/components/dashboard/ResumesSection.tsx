@@ -7,7 +7,7 @@ import ConfirmModal from "@/app/components/dashboard/ConfirmModal";
 type Resume = {
   id: number;
   file_name: string;
-  file_path: string;
+  url: string | null;
   role_targeted: string;
   notes: string;
   extracted_keywords: string[];
@@ -139,7 +139,7 @@ export default function ResumesSection() {
             </label>
             <input
               type="file"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,application/pdf"
               required
               onChange={(e) => setFile(e.target.files?.[0] || null)}
               className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-white file:text-black hover:file:bg-slate-200 cursor-pointer"
@@ -252,7 +252,7 @@ export default function ResumesSection() {
             </div>
             <div className="flex-1 bg-black p-2">
               <iframe
-                src={viewingResume.file_path}
+                src={viewingResume.url ?? undefined}
                 className="w-full h-full rounded-xl border-0"
                 title="Resume Preview"
               />

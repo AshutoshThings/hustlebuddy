@@ -1,11 +1,16 @@
 import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
 import { sendPasswordResetEmail } from "@/app/lib/emailService";
-import { generateOTP } from "@/app/lib/otp";
+import {
+  generateOTP,
+  isInResendCooldown,
+  otpExpiryFromNow,
+} from "@/app/lib/otp";
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const { email: rawEmail } = await request.json();
+    const email = String(rawEmail ?? "").trim().toLowerCase();
 
     if (!email) {
       return NextResponse.json(
@@ -15,19 +20,22 @@ export async function POST(request: Request) {
     }
 
     const userResult = await pool.query(
-      "SELECT id, name FROM users WHERE email = $1",
+      "SELECT id, name, otp_expiry, otp_purpose FROM users WHERE email = $1",
       [email],
     );
     const user = userResult.rows[0];
 
-    // For security, don't reveal if the email exists or not, but if they exist, send the OTP
-    if (user) {
-      const otp = generateOTP();
-      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    // Don't reveal whether the email exists. Within the cooldown we quietly
+    // skip sending, so the previous code stays valid.
+    const inCooldown =
+      user?.otp_purpose === "reset" && isInResendCooldown(user.otp_expiry);
 
+    if (user && !inCooldown) {
+      const otp = generateOTP();
       await pool.query(
-        "UPDATE users SET otp = $1, otp_expiry = $2 WHERE email = $3",
-        [otp, otpExpiry, email],
+        `UPDATE users SET otp = $1, otp_expiry = $2, otp_purpose = 'reset', otp_attempts = 0
+         WHERE id = $3`,
+        [otp, otpExpiryFromNow(), user.id],
       );
 
       await sendPasswordResetEmail(email, user.name || "User", otp);

@@ -1,13 +1,7 @@
 import pool from "@/app/lib/db";
 import { getAuthUser } from "@/app/lib/getAuthUser";
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+import { storage, storagePathOf } from "@/app/lib/resumeStorage";
 
 export async function DELETE(
   request: Request,
@@ -24,7 +18,7 @@ export async function DELETE(
   const { userId } = auth;
   const resumeId = Number((await params).id);
 
-  if (Number.isNaN(resumeId)) {
+  if (!Number.isInteger(resumeId) || resumeId <= 0) {
     return NextResponse.json(
       { response: "Invalid resume ID" },
       { status: 400 },
@@ -32,9 +26,8 @@ export async function DELETE(
   }
 
   try {
-    // 1. Fetch resume to get the file path/URL and secure user ownership
     const findQuery = await pool.query(
-      "SELECT * FROM resumes WHERE id = $1 AND user_id = $2",
+      "SELECT file_path FROM resumes WHERE id = $1 AND user_id = $2",
       [resumeId, userId],
     );
 
@@ -45,19 +38,18 @@ export async function DELETE(
       );
     }
 
-    const resume = findQuery.rows.length > 0 ? findQuery.rows[0] : null;
-
-    // 2. Extract relative storage path from public URL to delete from bucket if needed
-    // URL structure: .../storage/v1/object/public/resumes/userId/filename
-    if (resume && resume.file_path) {
-      const urlParts = resume.file_path.split("/resumes/");
-      if (urlParts.length > 1) {
-        const storagePath = urlParts[1];
-        await supabase.storage.from("resumes").remove([storagePath]);
+    const storagePath = storagePathOf(findQuery.rows[0].file_path);
+    if (storagePath) {
+      const { error } = await storage().remove([storagePath]);
+      if (error) {
+        console.error("Failed to delete resume file", resumeId, error);
+        return NextResponse.json(
+          { response: "Failed to delete resume" },
+          { status: 500 },
+        );
       }
     }
 
-    // 3. HARD DELETE from PostgreSQL database
     await pool.query("DELETE FROM resumes WHERE id = $1 AND user_id = $2", [
       resumeId,
       userId,

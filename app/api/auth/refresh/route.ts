@@ -1,8 +1,13 @@
 import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { signRefreshToken, signAccessToken, verifyToken } from "@/app/lib/auth";
-import { createHash } from "crypto";
 import pool from "@/app/lib/db";
+import {
+  hashToken,
+  REFRESH_TTL_MS,
+  setAccessCookie,
+  setRefreshCookie,
+} from "@/app/lib/authCookies";
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -21,7 +26,7 @@ export async function POST(request: NextRequest) {
     return unauthorizedResponse();
   }
 
-  const tokenHash = createHash("sha256").update(refreshToken).digest("hex");
+  const tokenHash = hashToken(refreshToken);
 
   const client = await pool.connect();
   try {
@@ -42,10 +47,8 @@ export async function POST(request: NextRequest) {
     const userId = result.rows[0].user_id;
     const newAccessToken = await signAccessToken(userId);
     const newRefreshToken = await signRefreshToken(userId);
-    const hashedNewRefreshToken = createHash("sha256")
-      .update(newRefreshToken)
-      .digest("hex");
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const hashedNewRefreshToken = hashToken(newRefreshToken);
+    const expiresAt = new Date(Date.now() + REFRESH_TTL_MS);
 
     await client.query(
       "UPDATE refresh_tokens SET revoked = true WHERE token_hash = $1",
@@ -62,13 +65,9 @@ export async function POST(request: NextRequest) {
       { accessToken: newAccessToken },
       { status: 200 },
     );
-    response.cookies.set("refreshToken", newRefreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
+    setRefreshCookie(response, newRefreshToken);
+    // Same-origin requests that can't send headers (EventSource) use this.
+    setAccessCookie(response, newAccessToken);
 
     return response;
   } catch (e) {

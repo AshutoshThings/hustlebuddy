@@ -1,55 +1,23 @@
 import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
+import { getAuthUser } from "@/app/lib/getAuthUser";
 
 const clients = new Map<number, ReadableStreamDefaultController[]>();
 
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  };
-}
-
-export async function OPTIONS() {
-  return NextResponse.json({}, { headers: corsHeaders() });
-}
-
+// Same-origin only: EventSource sends the httpOnly accessToken cookie, so no
+// token ever goes in the URL (where it would end up in logs and history).
+// Refresh tokens are never accepted here.
 export async function GET(request: Request) {
   try {
-    const url = new URL(request.url);
-    const tokenParam = url.searchParams.get("token");
-
-    const cookieHeader = request.headers.get("cookie") || "";
-    const cookies = Object.fromEntries(
-      cookieHeader.split("; ").map((c) => {
-        const [key, ...v] = c.split("=");
-        return [key, decodeURIComponent(v.join("="))];
-      }),
-    );
-
-    const token = tokenParam || cookies.accessToken || cookies.refreshToken;
-    if (!token) {
-      return new NextResponse("Unauthorized", {
-        status: 401,
-        headers: corsHeaders(),
-      });
+    const auth = await getAuthUser(request);
+    const userId = Number(auth?.userId);
+    if (!auth || !Number.isInteger(userId) || userId <= 0) {
+      return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const secret =
-      process.env.JWT_SECRET || process.env.JWT_REFRESH_SECRET || "";
-    const decoded: any = jwt.verify(token, secret);
-    const userId = decoded.userId || decoded.id;
-
-    if (!userId) {
-      return new NextResponse("Unauthorized", {
-        status: 401,
-        headers: corsHeaders(),
-      });
-    }
-
+    let self: ReadableStreamDefaultController | null = null;
     const stream = new ReadableStream({
       start(controller) {
+        self = controller;
         if (!clients.has(userId)) {
           clients.set(userId, []);
         }
@@ -57,12 +25,12 @@ export async function GET(request: Request) {
 
         controller.enqueue(new TextEncoder().encode(": connected\n\n"));
       },
-      cancel(controller) {
-        const userClients = clients.get(userId) || [];
-        clients.set(
-          userId,
-          userClients.filter((c) => c !== controller),
-        );
+      // cancel() receives the reason, not the controller, so use the one
+      // captured in start() to remove this connection.
+      cancel() {
+        const remaining = (clients.get(userId) || []).filter((c) => c !== self);
+        if (remaining.length) clients.set(userId, remaining);
+        else clients.delete(userId);
       },
     });
 
@@ -71,15 +39,11 @@ export async function GET(request: Request) {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
         Connection: "keep-alive",
-        ...corsHeaders(),
       },
     });
   } catch (err) {
     console.error("SSE Auth Error:", err);
-    return new NextResponse("Unauthorized", {
-      status: 401,
-      headers: corsHeaders(),
-    });
+    return new NextResponse("Unauthorized", { status: 401 });
   }
 }
 

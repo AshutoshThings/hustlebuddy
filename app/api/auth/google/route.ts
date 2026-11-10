@@ -1,9 +1,10 @@
+import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+
+import { OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
 
 export async function GET() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-
-  console.log("Loaded Client ID:", clientId ? "Found" : "Missing");
 
   if (!clientId) {
     return NextResponse.json(
@@ -17,14 +18,19 @@ export async function GET() {
 
   const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
+  // Random per-login value, echoed back by Google and checked against this
+  // cookie in the callback. Stops other sites from completing a login for you.
+  const state = randomBytes(32).toString("base64url");
+
   const options = {
     redirect_uri:
       process.env.GOOGLE_REDIRECT_URI ||
       "http://localhost:3000/api/auth/google/callback",
     client_id: clientId,
-    access_type: "offline",
+    access_type: "online",
     response_type: "code",
-    prompt: "consent",
+    prompt: "select_account",
+    state,
     scope: [
       "https://www.googleapis.com/auth/userinfo.profile",
       "https://www.googleapis.com/auth/userinfo.email",
@@ -32,5 +38,13 @@ export async function GET() {
   };
 
   const qs = new URLSearchParams(options);
-  return NextResponse.redirect(`${rootUrl}?${qs.toString()}`);
+  const response = NextResponse.redirect(`${rootUrl}?${qs.toString()}`);
+  response.cookies.set(OAUTH_STATE_COOKIE, state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 10 * 60,
+    path: "/api/auth/google",
+  });
+  return response;
 }

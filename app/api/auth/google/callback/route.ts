@@ -1,16 +1,40 @@
+import { timingSafeEqual } from "node:crypto";
 import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
-import { signAccessToken, signRefreshToken } from "@/app/lib/auth";
-import { createHash } from "crypto";
+import { cookies } from "next/headers";
+import {
+  issueSession,
+  setAccessCookie,
+  setRefreshCookie,
+} from "@/app/lib/authCookies";
+import { OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+
+// Stored in password_hash for accounts that sign in with Google only.
+// It is not a bcrypt hash, so no password can ever match it.
+const NO_PASSWORD = "GOOGLE_OAUTH_USER_NO_PASSWORD";
+
+function stateMatches(expected: string | undefined, given: string | null) {
+  if (!expected || !given) return false;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(given);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function fail(request: Request, error: string) {
+  const response = NextResponse.redirect(
+    new URL(`/auth?error=${error}`, request.url),
+  );
+  response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth/google" });
+  return response;
+}
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const expectedState = (await cookies()).get(OAUTH_STATE_COOKIE)?.value;
 
-  if (!code) {
-    return NextResponse.redirect(
-      new URL("/auth?error=GoogleAuthFailed", request.url),
-    );
+  if (!code || !stateMatches(expectedState, url.searchParams.get("state"))) {
+    return fail(request, "GoogleAuthFailed");
   }
 
   try {
@@ -39,52 +63,51 @@ export async function GET(request: Request) {
       },
     );
     const googleUser = await userRes.json();
-    const { email, name } = googleUser;
+    const { name, verified_email } = googleUser;
+    const email =
+      typeof googleUser.email === "string"
+        ? googleUser.email.trim().toLowerCase()
+        : "";
 
     if (!email) throw new Error("Email not found from Google profile");
+    if (verified_email !== true) {
+      return fail(request, "GoogleEmailNotVerified");
+    }
 
-    let userResult = await pool.query("SELECT * FROM users WHERE email = $1", [
-      email,
-    ]);
+    const userResult = await pool.query(
+      "SELECT id, is_verified FROM users WHERE email = $1",
+      [email],
+    );
     let user = userResult.rows[0];
 
     if (!user) {
       const insertRes = await pool.query(
-        "INSERT INTO users (name, email, password_hash, is_verified) VALUES ($1, $2, $3, true) RETURNING *",
-        [name || "User", email, "GOOGLE_OAUTH_USER_NO_PASSWORD"],
+        "INSERT INTO users (name, email, password_hash, is_verified) VALUES ($1, $2, $3, true) RETURNING id",
+        [name || "User", email, NO_PASSWORD],
       );
       user = insertRes.rows[0];
+    } else if (!user.is_verified) {
+      // Google just proved who owns this email. Whoever started the unverified
+      // signup may not be them, so drop that password and any pending code.
+      await pool.query(
+        `UPDATE users SET is_verified = true, password_hash = $1, otp = NULL,
+           otp_expiry = NULL, otp_purpose = NULL, otp_attempts = 0
+         WHERE id = $2`,
+        [NO_PASSWORD, user.id],
+      );
     }
 
-    const accessToken = await signAccessToken(user.id);
-    const refreshToken = await signRefreshToken(user.id);
-    const hashedRefreshToken = createHash("sha256")
-      .update(refreshToken)
-      .digest("hex");
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    await pool.query(
-      "INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)",
-      [user.id, hashedRefreshToken, expiresAt],
-    );
+    const { accessToken, refreshToken } = await issueSession(user.id);
 
     const response = NextResponse.redirect(
       new URL("/auth/success", request.url),
     );
-
-    response.cookies.set("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
-
+    response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth/google" });
+    setRefreshCookie(response, refreshToken);
+    setAccessCookie(response, accessToken);
     return response;
   } catch (error) {
     console.error("Google OAuth callback error:", error);
-    return NextResponse.redirect(
-      new URL("/auth?error=GoogleAuthError", request.url),
-    );
+    return fail(request, "GoogleAuthError");
   }
 }

@@ -1,12 +1,11 @@
-import { createHash } from "crypto";
 import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
+import { verifyPassword, DUMMY_HASH } from "@/app/lib/auth";
 import {
-  verifyPassword,
-  signAccessToken,
-  signRefreshToken,
-  DUMMY_HASH,
-} from "@/app/lib/auth";
+  issueSession,
+  setAccessCookie,
+  setRefreshCookie,
+} from "@/app/lib/authCookies";
 import { loginSchema } from "@/app/lib/validationSchema";
 
 export async function POST(request: Request) {
@@ -63,38 +62,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const accessToken = await signAccessToken(user.id);
-    const refreshToken = await signRefreshToken(user.id);
-    const hashedRefreshToken = createHash("sha256")
-      .update(refreshToken)
-      .digest("hex");
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    await pool.query(
-      "INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)",
-      [user.id, hashedRefreshToken, expiresAt],
-    );
+    const { accessToken, refreshToken } = await issueSession(user.id);
 
     console.log("User logged in successfully: ", user.id);
     const response = NextResponse.json({ accessToken }, { status: 200 });
 
-    // Set Refresh Token Cookie (30 days)
-    response.cookies.set("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-    });
-
-    // Set Access Token Cookie (15 minutes) - Crucial for server/proxy session checks
-    response.cookies.set("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 60 * 15,
-      path: "/",
-    });
+    setRefreshCookie(response, refreshToken);
+    setAccessCookie(response, accessToken);
 
     return response;
   } catch (error) {

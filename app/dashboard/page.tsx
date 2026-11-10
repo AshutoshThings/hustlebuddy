@@ -91,10 +91,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!accessToken) return;
 
-    // Pass accessToken as a query parameter to bypass EventSource header limitations and 401 errors
-    const eventSource = new EventSource(
-      `/api/applications/stream?token=${accessToken}`,
-    );
+    // Authenticated by the httpOnly accessToken cookie (same origin).
+    const eventSource = new EventSource("/api/applications/stream");
 
     eventSource.onmessage = (event) => {
       try {
