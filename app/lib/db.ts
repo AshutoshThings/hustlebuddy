@@ -7,7 +7,23 @@ import { Pool, type PoolConfig } from "pg";
 //   so it can live on one line in an env file.
 // - DATABASE_SSL_INSECURE=true turns verification off. Only for local
 //   experiments: it lets anyone on the network path read and alter traffic.
-function sslConfig(): PoolConfig["ssl"] {
+// - DATABASE_SSL=disable connects without TLS, for a Postgres on the same
+//   machine (tests, CI). Only honored when DATABASE_URL points at localhost.
+function isLocalDatabase(): boolean {
+  try {
+    const host = new URL(process.env.DATABASE_URL ?? "").hostname;
+    return ["localhost", "127.0.0.1", "[::1]"].includes(host);
+  } catch {
+    return false;
+  }
+}
+
+export function sslConfig(): PoolConfig["ssl"] {
+  if (process.env.DATABASE_SSL === "disable") {
+    if (isLocalDatabase()) return false;
+    console.warn("DATABASE_SSL=disable ignored: database is not on localhost");
+  }
+
   const ca = process.env.DATABASE_CA_CERT;
   if (ca) return { ca: ca.replace(/\\n/g, "\n"), rejectUnauthorized: true };
 
