@@ -2,6 +2,11 @@ import pool from "@/app/lib/db";
 import { getAuthUser } from "@/app/lib/getAuthUser";
 import { applicationOnUpdate } from "@/app/lib/validationSchema";
 import { NextResponse } from "next/server";
+import {
+  firstIssue,
+  isDuplicateError,
+  ownsResume,
+} from "@/app/lib/applicationErrors";
 
 export async function PATCH(
   request: Request,
@@ -17,8 +22,7 @@ export async function PATCH(
   let body;
   try {
     body = await request.json();
-  } catch (e) {
-    console.log("Empty body on application edit request", e);
+  } catch {
     return NextResponse.json({ response: "Empty body" }, { status: 400 });
   }
 
@@ -36,7 +40,13 @@ export async function PATCH(
   }
   if (!zodVerification.success) {
     return NextResponse.json(
-      { response: "atleast 1 value is required" },
+      { response: firstIssue(zodVerification.error) },
+      { status: 400 },
+    );
+  }
+  if (!(await ownsResume(userId, zodVerification.data.resume_id))) {
+    return NextResponse.json(
+      { response: "resume_id: Resume not found" },
       { status: 400 },
     );
   }
@@ -63,6 +73,12 @@ export async function PATCH(
       { status: 200 },
     );
   } catch (e) {
+    if (isDuplicateError(e)) {
+      return NextResponse.json(
+        { response: "You already track this role at this company" },
+        { status: 409 },
+      );
+    }
     console.error("Error updating application", userId, paramsId, e);
     return NextResponse.json(
       { response: "failed to update application" },

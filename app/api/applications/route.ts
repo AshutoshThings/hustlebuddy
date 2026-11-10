@@ -1,8 +1,13 @@
 import pool from "@/app/lib/db";
 import { getAuthUser } from "@/app/lib/getAuthUser";
 import { NextResponse } from "next/server";
+import {
+  firstIssue,
+  isDuplicateError,
+  ownsResume,
+} from "@/app/lib/applicationErrors";
 import { applicationSchema } from "@/app/lib/validationSchema";
-import { broadcastNewApplication } from "./stream/route";
+import { publishApplicationCreated } from "@/app/lib/realtime";
 
 function corsHeaders() {
   return {
@@ -58,18 +63,9 @@ export async function POST(request: Request) {
     );
   }
   const { userId } = auth;
-  if (!userId) {
-    console.log("invalid user tried to access the /api/applications/ route");
-    return NextResponse.json(
-      {
-        response: "session expired",
-      },
-      { status: 401, headers: corsHeaders() },
-    );
-  }
   try {
     const body = await request.json();
-    const { company, role, status, source, notes } = body;
+    const { company, role, status, source, notes, resume_id } = body;
 
     // validate values with zod.
     const validatedBody = applicationSchema.safeParse({
@@ -78,13 +74,12 @@ export async function POST(request: Request) {
       status,
       source,
       notes,
+      resume_id,
     });
     if (!validatedBody.success) {
       //zod validation failed.
       return NextResponse.json(
-        {
-          response: "required all valid values",
-        },
+        { response: firstIssue(validatedBody.error) },
         { status: 400, headers: corsHeaders() },
       );
     }
@@ -95,7 +90,15 @@ export async function POST(request: Request) {
       status: cleanStatus,
       source: cleanSource,
       notes: cleanNotes,
+      resume_id: cleanResumeId,
     } = validatedBody.data;
+
+    if (!(await ownsResume(userId, cleanResumeId))) {
+      return NextResponse.json(
+        { response: "resume_id: Resume not found" },
+        { status: 400, headers: corsHeaders() },
+      );
+    }
 
     // 1. CHECK FOR DUPLICATES: See if the user already has this exact role at this company
     const existingCheck = await pool.query(
@@ -104,7 +107,7 @@ export async function POST(request: Request) {
          AND LOWER(company) = LOWER($2) 
          AND LOWER(role) = LOWER($3) 
          AND deleted_at IS NULL`,
-      [userId, cleanCompany.trim(), cleanRole.trim()],
+      [userId, cleanCompany, cleanRole],
     );
 
     if (existingCheck.rows.length > 0) {
@@ -119,17 +122,35 @@ export async function POST(request: Request) {
 
     // 2. INSERT IF NOT A DUPLICATE
     const insertResponse = await pool.query(
-      "INSERT into applications (user_id, company, role, status, source, notes) values ($1, $2, $3, $4, $5, $6) RETURNING * ",
-      [userId, cleanCompany, cleanRole, cleanStatus, cleanSource, cleanNotes],
+      "INSERT into applications (user_id, company, role, status, source, notes, resume_id) values ($1, $2, $3, $4, $5, $6, $7) RETURNING * ",
+      [
+        userId,
+        cleanCompany,
+        cleanRole,
+        cleanStatus,
+        cleanSource,
+        cleanNotes,
+        cleanResumeId ?? null,
+      ],
     );
     const newApp = insertResponse.rows[0];
-    broadcastNewApplication(Number(userId), newApp);
+    await publishApplicationCreated(Number(userId), newApp.id);
 
     return NextResponse.json(
       { application: newApp, duplicate: false },
       { status: 201, headers: corsHeaders() },
     );
   } catch (e) {
+    // Lost a race with a concurrent save of the same application.
+    if (isDuplicateError(e)) {
+      return NextResponse.json(
+        {
+          response: "Application already exists in your tracker!",
+          duplicate: true,
+        },
+        { status: 200, headers: corsHeaders() },
+      );
+    }
     console.error(
       "Error occurred while inserting application data by user",
       userId,
