@@ -7,7 +7,10 @@ import {
   useState,
   useEffect,
   useRef,
+  useCallback,
+  useMemo,
 } from "react";
+import { refreshSession } from "@/app/lib/refreshSession";
 
 type AuthContextType = {
   accessToken: string | null;
@@ -25,13 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!initialRefresh.current) {
-      initialRefresh.current = fetch("/api/auth/refresh", {
-        method: "POST",
-        credentials: "include",
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => (data?.accessToken as string | undefined) ?? null)
-        .catch(() => null);
+      initialRefresh.current = refreshSession();
     }
     initialRefresh.current.then((token) => {
       if (token) setAccessToken(token);
@@ -39,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -49,20 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout failed", err);
     }
     setAccessToken(null);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        accessToken,
-        loading,
-        login: (token) => setAccessToken(token),
-        logout,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const login = useCallback((token: string) => setAccessToken(token), []);
+
+  // Stable between renders, so consumers can list these in effect deps.
+  const value = useMemo(
+    () => ({ accessToken, loading, login, logout }),
+    [accessToken, loading, login, logout],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

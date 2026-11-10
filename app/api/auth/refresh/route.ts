@@ -1,20 +1,21 @@
-import { NextResponse, NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { signRefreshToken, signAccessToken, verifyToken } from "@/app/lib/auth";
 import pool from "@/app/lib/db";
 import {
+  clearAuthCookies,
   hashToken,
   REFRESH_TTL_MS,
   setAccessCookie,
   setRefreshCookie,
 } from "@/app/lib/authCookies";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refreshToken")?.value;
 
   if (!refreshToken) {
-    return unauthorizedResponse();
+    return sessionOverResponse();
   }
 
   const jwtVerificationResult = await verifyToken(
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (!jwtVerificationResult) {
-    return unauthorizedResponse();
+    return sessionOverResponse();
   }
 
   const tokenHash = hashToken(refreshToken);
@@ -41,7 +42,17 @@ export async function POST(request: NextRequest) {
 
     if (result.rows.length === 0) {
       await client.query("ROLLBACK");
-      return unauthorizedResponse();
+      // Another tab may have rotated this token a moment ago and already
+      // set new cookies; clearing them here would sign that tab out too.
+      const justRotated = await pool.query(
+        `SELECT 1 FROM refresh_tokens
+         WHERE user_id = $1 AND revoked = false
+           AND created_at > now() - interval '30 seconds'`,
+        [jwtVerificationResult.userId],
+      );
+      return justRotated.rows.length
+        ? unauthorizedResponse()
+        : sessionOverResponse();
     }
 
     const userId = result.rows[0].user_id;
@@ -72,7 +83,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (e) {
     await client.query("ROLLBACK");
-    console.log("error rotating refresh token", e);
+    console.error("error rotating refresh token", e);
     return serverErrorResponse();
   } finally {
     client.release();
@@ -84,6 +95,15 @@ function unauthorizedResponse() {
     { response: "Session is over, Sign in again" },
     { status: 401 },
   );
+}
+// The session can't be recovered (revoked, expired, user gone): drop the
+// cookies too. Otherwise /auth, which sends anyone with an auth cookie to
+// the dashboard, and the dashboard, which sends anyone it can't refresh to
+// /auth, bounce the browser between them.
+function sessionOverResponse() {
+  const response = unauthorizedResponse();
+  clearAuthCookies(response);
+  return response;
 }
 function serverErrorResponse() {
   return NextResponse.json({ response: "DB error" }, { status: 500 });

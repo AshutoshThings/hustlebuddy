@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { hashPassword, verifyToken } from "@/app/lib/auth";
 import { hashToken } from "@/app/lib/authCookies";
 import { checkOtp, OTP_ERROR_MESSAGES } from "@/app/lib/otp";
-import { signupSchema } from "@/app/lib/validationSchema";
+import { passwordSchema } from "@/app/lib/validationSchema";
 import { rateLimit, clientIp, MINUTE } from "@/app/lib/rateLimit";
 
 export async function POST(request: Request) {
@@ -32,8 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordValidation =
-      signupSchema.shape.password.safeParse(newPassword);
+    const passwordValidation = passwordSchema.safeParse(newPassword);
     if (!passwordValidation.success) {
       return NextResponse.json(
         { response: passwordValidation.error.issues[0].message },

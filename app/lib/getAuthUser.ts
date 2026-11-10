@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 export async function getAuthUser(
   request: Request,
-): Promise<{ userId: number | string } | null> {
+): Promise<{ userId: number | string; exp?: number } | null> {
   let token: string | undefined;
 
   const authHeader = request.headers.get("authorization");
@@ -24,5 +24,5 @@ export async function getAuthUser(
   if (!payload) {
     return null;
   }
-  return { userId: payload.userId };
+  return { userId: payload.userId, exp: payload.exp };
 }

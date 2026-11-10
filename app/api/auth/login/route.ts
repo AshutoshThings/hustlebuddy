@@ -13,8 +13,7 @@ export async function POST(request: Request) {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
-    console.log(e);
+  } catch {
     return NextResponse.json({ response: "Empty body" }, { status: 400 });
   }
 
@@ -37,7 +36,6 @@ export async function POST(request: Request) {
 
   const validationResult = loginSchema.safeParse(body);
   if (!validationResult.success) {
-    console.log("Validation errors: ", validationResult.error);
     return NextResponse.json(
       {
         response: validationResult.error.issues
@@ -55,7 +53,6 @@ export async function POST(request: Request) {
     ]);
     if (result.rows.length === 0) {
       await verifyPassword(password, DUMMY_HASH);
-      console.log("Login failed: unknown email");
       return NextResponse.json(
         { response: "Invalid email or password" },
         { status: 401 },
@@ -65,7 +62,7 @@ export async function POST(request: Request) {
 
     const isPasswordValid = await verifyPassword(password, user.password_hash);
     if (!isPasswordValid) {
-      console.log("Login failed: wrong password for user", user.id);
+      console.warn("Login failed: wrong password for user", user.id);
       return NextResponse.json(
         { response: "Invalid email or password" },
         { status: 401 },
@@ -73,7 +70,6 @@ export async function POST(request: Request) {
     }
 
     if (!user.is_verified) {
-      console.log("Login blocked: unverified user", user.id);
       return NextResponse.json(
         { response: "Please verify your email before logging in" },
         { status: 403 },
@@ -82,7 +78,6 @@ export async function POST(request: Request) {
 
     const { accessToken, refreshToken } = await issueSession(user.id);
 
-    console.log("User logged in successfully: ", user.id);
     const response = NextResponse.json({ accessToken }, { status: 200 });
 
     setRefreshCookie(response, refreshToken);
@@ -95,7 +90,5 @@ export async function POST(request: Request) {
       { response: "Error during login" },
       { status: 500 },
     );
-  } finally {
-    console.log("Login route completed");
   }
 }

@@ -1,12 +1,17 @@
 "use client";
 
-import { loginSchema, signupSchema } from "@/app/lib/validationSchema";
+import {
+  loginSchema,
+  passwordSchema,
+  signupSchema,
+} from "@/app/lib/validationSchema";
 import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeNext } from "@/app/lib/safeNext";
 import { HustleBuddyLogo } from "../components/ui/HustleBuddyLogo";
 import { useAuth } from "@/app/context/AuthContext";
+import { errorMessage } from "@/app/lib/errorMessage";
 
 export default function LoginPage() {
   return (
@@ -83,8 +88,8 @@ function AuthContent() {
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete("mode");
       router.replace(`?${newParams.toString()}`, { scroll: false });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -108,8 +113,8 @@ function AuthContent() {
         throw new Error(data.response || "Failed to send reset code");
 
       setMode("reset_otp");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +129,7 @@ function AuthContent() {
     setError(null);
 
     // Validate password strength using Zod schema before sending
-    const passwordCheck = signupSchema.shape.password.safeParse(newPassword);
+    const passwordCheck = passwordSchema.safeParse(newPassword);
     if (!passwordCheck.success) {
       setError(passwordCheck.error.issues[0].message);
       setIsLoading(false);
@@ -146,8 +151,8 @@ function AuthContent() {
       setOtp("");
       setNewPassword("");
       setResetEmail("");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -223,8 +228,8 @@ function AuthContent() {
       } else {
         setMode("signup_otp");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -639,6 +644,18 @@ function AuthContent() {
 // UI Sub-Components
 // ============================================================================
 
+type InputFieldProps = {
+  label: string;
+  name: string;
+  type: string;
+  placeholder?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
+  rightElement?: React.ReactNode;
+  suffix?: React.ReactNode;
+};
+
 const InputField = ({
   label,
   name,
@@ -649,7 +666,7 @@ const InputField = ({
   required,
   rightElement,
   suffix,
-}: any) => (
+}: InputFieldProps) => (
   <div className="space-y-1.5">
     <div className="flex items-center justify-between">
       <label className="text-xs font-medium text-slate-400">{label}</label>

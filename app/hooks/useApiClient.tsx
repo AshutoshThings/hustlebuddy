@@ -1,6 +1,8 @@
 "use client";
 
+import { useMemo } from "react";
 import { useAuth } from "@/app/context/AuthContext";
+import { refreshSession } from "@/app/lib/refreshSession";
 
 async function parseJson(res: Response) {
   try {
@@ -12,12 +14,25 @@ async function parseJson(res: Response) {
 
 export function useApiClient() {
   const { accessToken, login, logout } = useAuth();
+  // Rebuilt only when the session changes, so it is safe in effect deps.
+  return useMemo(
+    () => createClient(accessToken, login, logout),
+    [accessToken, login, logout],
+  );
+}
 
+function createClient(
+  accessToken: string | null,
+  login: (token: string) => void,
+  logout: () => Promise<void>,
+) {
   async function request(
     path: string,
     options: RequestInit = {},
     tokenOverride?: string,
     retried = false,
+    // Each endpoint returns its own JSON shape; callers read what they need.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
     const token = tokenOverride ?? accessToken;
 
@@ -37,18 +52,10 @@ export function useApiClient() {
     });
 
     if (res.status === 401 && !retried) {
-      const refreshRes = await fetch("/api/auth/refresh", {
-        method: "POST",
-      });
-
-      if (refreshRes.ok) {
-        const data = await refreshRes.json();
-
-        if (data?.accessToken) {
-          login(data.accessToken);
-
-          return request(path, options, data.accessToken, true);
-        }
+      const newToken = await refreshSession();
+      if (newToken) {
+        login(newToken);
+        return request(path, options, newToken, true);
       }
 
       logout();
