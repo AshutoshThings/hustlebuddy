@@ -97,17 +97,11 @@ export async function POST(request: Request) {
 
     // Store the private path; clients get short-lived signed URLs instead.
     const insertResponse = await pool.query(
-      `INSERT INTO resumes (user_id, file_name, file_path, role_targeted, notes, parsed_text, extracted_keywords)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-      [
-        userId,
-        file.name.slice(0, 255),
-        storageData.path,
-        roleTargeted,
-        notes,
-        "Parsed text placeholder",
-        JSON.stringify(["JavaScript", "TypeScript", "React", "Node.js"]),
-      ],
+      // parsed_text and extracted_keywords stay empty until text extraction
+      // exists; they used to be filled with made-up sample values.
+      `INSERT INTO resumes (user_id, file_name, file_path, role_targeted, notes)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [userId, file.name.slice(0, 255), storageData.path, roleTargeted, notes],
     );
 
     const [resume] = await withSignedUrls(insertResponse.rows);

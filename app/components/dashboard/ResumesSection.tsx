@@ -1,8 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useApiClient } from "@/app/hooks/useApiClient";
 import ConfirmModal from "@/app/components/dashboard/ConfirmModal";
+import { errorMessage } from "@/app/lib/errorMessage";
+
+// Signed resume links last an hour on the server; refresh a little earlier.
+const URL_FRESH_MS = 50 * 60 * 1000;
+const isFresh = (loadedAt: number) => Date.now() - loadedAt < URL_FRESH_MS;
 
 type Resume = {
   id: number;
@@ -33,19 +38,39 @@ export default function ResumesSection() {
   const [deletingResume, setDeletingResume] = useState<Resume | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  const loadedAt = useRef(0);
+
+  const fetchResumes = useCallback(
+    (): Promise<Resume[]> =>
+      api
+        .getResumes()
+        .then((data) => {
+          const list: Resume[] = data.resumes || [];
+          loadedAt.current = Date.now();
+          setResumes(list);
+          return list;
+        })
+        .catch((err) => {
+          setError(errorMessage(err, "Failed to load resumes"));
+          return [];
+        })
+        .finally(() => setIsLoading(false)),
+    [api],
+  );
+
   useEffect(() => {
     fetchResumes();
-  }, []);
+  }, [fetchResumes]);
 
-  const fetchResumes = async () => {
-    try {
-      const data = await api.getResumes();
-      setResumes(data.resumes || []);
-    } catch (err: any) {
-      setError(err.message || "Failed to load resumes");
-    } finally {
-      setIsLoading(false);
+  // A tab left open for over an hour holds expired links: fetch fresh ones
+  // before showing a preview.
+  const openResume = async (resume: Resume) => {
+    if (isFresh(loadedAt.current)) {
+      setViewingResume(resume);
+      return;
     }
+    const fresh = (await fetchResumes()).find((r) => r.id === resume.id);
+    if (fresh) setViewingResume(fresh);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -66,8 +91,8 @@ export default function ResumesSection() {
       setFile(null);
       setRoleTargeted("");
       setNotes("");
-    } catch (err: any) {
-      setError(err.message || "Failed to upload resume");
+    } catch (err) {
+      setError(errorMessage(err, "Failed to upload resume"));
     } finally {
       setIsUploading(false);
     }
@@ -84,8 +109,8 @@ export default function ResumesSection() {
         current.filter((r) => r.id !== deletingResume.id),
       );
       setDeletingResume(null);
-    } catch (err: any) {
-      setError(err.message || "Failed to delete resume");
+    } catch (err) {
+      setError(errorMessage(err, "Failed to delete resume"));
     } finally {
       setIsDeleting(false);
     }
@@ -202,7 +227,7 @@ export default function ResumesSection() {
 
                 {resume.notes && (
                   <p className="text-xs text-slate-300 bg-white/5 p-2.5 rounded-xl mb-3 italic">
-                    "{resume.notes}"
+                    &ldquo;{resume.notes}&rdquo;
                   </p>
                 )}
 
@@ -224,7 +249,7 @@ export default function ResumesSection() {
                   Added {new Date(resume.created_at).toLocaleDateString()}
                 </span>
                 <button
-                  onClick={() => setViewingResume(resume)}
+                  onClick={() => openResume(resume)}
                   className="text-white hover:underline text-xs font-medium bg-white/10 px-3 py-1 rounded-lg"
                 >
                   View Resume
