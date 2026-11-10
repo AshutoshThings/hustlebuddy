@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: hustlebuddy_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Throwaway values: CI uses its own empty database and never sends email
+    # or talks to Google or Supabase.
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hustlebuddy_test
+      DATABASE_SSL: disable
+      JWT_SECRET: ci-access-secret-not-used-anywhere-else
+      JWT_REFRESH_SECRET: ci-refresh-secret-not-used-anywhere-else
+      GOOGLE_CLIENT_ID: ci-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+      GOOGLE_REDIRECT_URI: http://localhost:3000/api/auth/google/callback
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Apply migrations to an empty database
+        run: npm run migrate
+
+      - name: Migrations are re-runnable
+        run: npm run migrate
+
+      - name: Build
+        run: npm run build
+
+      - name: Start server
+        run: |
+          npm run start > server.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf -o /dev/null http://localhost:3000/auth && exit 0
+            sleep 1
+          done
+          echo "server did not start"; cat server.log; exit 1
+
+      - name: Test
+        run: npm test
+
+      - name: Server log
+        if: failure()
+        run: cat server.log
