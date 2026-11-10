@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Application, ApplicationStatus } from "@/app/types/application";
 import { useApiClient } from "@/app/hooks/useApiClient";
+import { errorMessage } from "@/app/lib/errorMessage";
 
 type NewApplicationFormProps = {
   initialData?: Application | null; // <--- If present, we are editing!
@@ -65,8 +66,8 @@ export default function NewApplicationForm({
       };
 
       onSaved(savedApp);
-    } catch (err: any) {
-      setError(err.message || "Failed to save application");
+    } catch (err) {
+      setError(errorMessage(err, "Failed to save application"));
     } finally {
       setIsSubmitting(false);
     }

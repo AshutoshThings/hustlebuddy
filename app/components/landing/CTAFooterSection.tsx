@@ -101,7 +101,6 @@
 
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Reveal } from "@/app/components/ui/Reveal";
 import { motion, useMotionTemplate, useMotionValue } from "motion/react";
 import { MouseEvent } from "react";
@@ -127,7 +126,6 @@ const STEPS = [
 ];
 
 export const CTAFooterSection = () => {
-  const router = useRouter();
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -136,15 +134,6 @@ export const CTAFooterSection = () => {
     mouseX.set(clientX - left);
     mouseY.set(clientY - top);
   }
-
-  const handleOpenDashboard = async () => {
-    try {
-      const res = await fetch("/api/auth/session", { method: "GET" });
-      router.push(res.ok ? "/dashboard" : "/auth");
-    } catch {
-      router.push("/auth");
-    }
-  };
 
   const spotlight = useMotionTemplate`radial-gradient(650px circle at ${mouseX}px ${mouseY}px, rgba(255,255,255,0.03), transparent 80%)`;
   const dotMask = useMotionTemplate`radial-gradient(350px circle at ${mouseX}px ${mouseY}px, black, transparent 80%)`;

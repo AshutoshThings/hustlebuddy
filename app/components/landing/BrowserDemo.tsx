@@ -290,7 +290,7 @@ const typeChar: Variants = {
 const windowShadow = "shadow-[0_24px_60px_rgba(0,0,0,0.55)]";
 
 export const BrowserDemo = () => {
-  const events = useMemo(buildTimeline, []);
+  const events = useMemo(() => buildTimeline(), []);
   const [tick, setTick] = useState(0);
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(
     null,
@@ -305,10 +305,11 @@ export const BrowserDemo = () => {
   const inView50 = useInView(containerRef, { amount: 0.5 });
   const inView30 = useInView(containerRef, { amount: 0.3 });
 
-  useEffect(() => {
-    if (inView50) setIsPlaying(true);
-    else if (!inView30) setIsPlaying(false);
-  }, [inView50, inView30]);
+  // Start when half visible, stop when under 30% visible, so it doesn't
+  // flicker at the edge. Adjusting state while rendering is React's
+  // recommended way to follow changing inputs.
+  if (inView50 && !isPlaying) setIsPlaying(true);
+  else if (!inView30 && isPlaying) setIsPlaying(false);
 
   useEffect(() => {
     if (!isPlaying) return;

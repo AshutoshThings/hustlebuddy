@@ -10,7 +10,10 @@ export function ExtensionBridge() {
   const { accessToken, loading } = useAuth();
   const hadToken = useRef(false);
   const tokenRef = useRef<string | null>(null);
-  tokenRef.current = accessToken;
+
+  useEffect(() => {
+    tokenRef.current = accessToken;
+  }, [accessToken]);
 
   useEffect(() => {
     if (loading) return;

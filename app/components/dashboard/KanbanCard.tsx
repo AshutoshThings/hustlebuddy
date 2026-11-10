@@ -20,7 +20,13 @@ export default function KanbanCard({ app, onEdit, onDelete }: KanbanCardProps) {
     <motion.div
       layoutId={app.id}
       draggable={true}
-      onDragStart={handleDragStart as any}
+      // Native HTML drag (draggable), not motion's drag gesture, so the
+      // handler gets a DragEvent rather than motion's pointer event.
+      onDragStart={
+        handleDragStart as unknown as React.ComponentProps<
+          typeof motion.div
+        >["onDragStart"]
+      }
       whileDrag={{
         scale: 1.05,
         rotate: 2,

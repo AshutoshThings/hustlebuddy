@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Application, ApplicationStatus } from "@/app/types/application";
 import KanbanCard from "./KanbanCard"; // Import your KanbanCard component
+import { useLocalStorage } from "@/app/hooks/useLocalStorage";
 
 type KanbanBoardProps = {
   applications: Application[];
@@ -97,24 +98,19 @@ export default function KanbanBoard({
   const [draggingAppId, setDraggingAppId] = useState<string | null>(null);
 
   // Column Customization State (persisted in localStorage)
-  const [columnThemes, setColumnThemes] =
-    useState<Record<ApplicationStatus, ColorTheme>>(DEFAULT_THEMES);
+  const [savedThemes, setSavedThemes] = useLocalStorage("kanban_column_themes");
+  const columnThemes = useMemo<Record<ApplicationStatus, ColorTheme>>(() => {
+    if (!savedThemes) return DEFAULT_THEMES;
+    try {
+      return { ...DEFAULT_THEMES, ...JSON.parse(savedThemes) };
+    } catch {
+      return DEFAULT_THEMES;
+    }
+  }, [savedThemes]);
   const [activeColorPickerCol, setActiveColorPickerCol] =
     useState<ApplicationStatus | null>(null);
 
   const pickerRef = useRef<HTMLDivElement>(null);
-
-  // Load saved themes on mount
-  useEffect(() => {
-    const saved = localStorage.getItem("kanban_column_themes");
-    if (saved) {
-      try {
-        setColumnThemes(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse saved column themes", e);
-      }
-    }
-  }, []);
 
   // Close color picker dropdown when clicking outside
   useEffect(() => {
@@ -131,9 +127,7 @@ export default function KanbanBoard({
   }, []);
 
   const handleSelectTheme = (status: ApplicationStatus, theme: ColorTheme) => {
-    const updated = { ...columnThemes, [status]: theme };
-    setColumnThemes(updated);
-    localStorage.setItem("kanban_column_themes", JSON.stringify(updated));
+    setSavedThemes(JSON.stringify({ ...columnThemes, [status]: theme }));
     setActiveColorPickerCol(null);
   };
 

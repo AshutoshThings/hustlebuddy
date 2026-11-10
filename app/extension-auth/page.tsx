@@ -26,7 +26,6 @@ export default function ExtensionAuthPage() {
       return;
     }
 
-    setStatus("linking");
     let acked = false;
 
     const onMessage = (event: MessageEvent) => {
@@ -65,9 +64,13 @@ export default function ExtensionAuthPage() {
     };
   }, [loading, accessToken, router]);
 
+  // Signed in and still waiting on the extension: show that it's linking.
+  const shown: Status =
+    status === "checking" && !loading && accessToken ? "linking" : status;
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-black text-slate-300 px-6">
-      <p className="max-w-sm text-center text-sm">{MESSAGES[status]}</p>
+      <p className="max-w-sm text-center text-sm">{MESSAGES[shown]}</p>
     </main>
   );
 }

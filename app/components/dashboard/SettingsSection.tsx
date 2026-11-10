@@ -4,24 +4,25 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { useApiClient } from "@/app/hooks/useApiClient";
 import { Application } from "@/app/types/application";
-import { signupSchema } from "@/app/lib/validationSchema"; // <--- Import validation schema
+import { passwordSchema } from "@/app/lib/validationSchema";
 import { useRouter } from "next/navigation";
+import { errorMessage } from "@/app/lib/errorMessage";
+import { useLocalStorage } from "@/app/hooks/useLocalStorage";
 
 type SettingsSectionProps = {
   applications: Application[];
-  onRefreshData?: () => void;
 };
 
 type UserProfile = {
-  id?: string;
+  // Fields returned by GET /api/user.
+  id?: number;
   name?: string;
   email?: string;
-  [key: string]: any;
+  created_at?: string;
 };
 
 export default function SettingsSection({
   applications,
-  onRefreshData,
 }: SettingsSectionProps) {
   const { logout } = useAuth();
   const router = useRouter();
@@ -35,7 +36,9 @@ export default function SettingsSection({
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [defaultView, setDefaultView] = useState<"kanban" | "table">("kanban");
+  const [savedView, setSavedView] = useLocalStorage("default_view_mode");
+  const defaultView = savedView === "table" ? "table" : "kanban";
+  const [, setKanbanThemes] = useLocalStorage("kanban_column_themes");
   const [modalError, setModalError] = useState<string | null>(null);
 
   // Change Password Modal & Step States
@@ -48,13 +51,6 @@ export default function SettingsSection({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const savedView = localStorage.getItem("default_view_mode") as
-      | "kanban"
-      | "table";
-    if (savedView) {
-      setDefaultView(savedView);
-    }
-
     api
       .getUserProfile()
       .then((data) => {
@@ -66,7 +62,7 @@ export default function SettingsSection({
       .finally(() => {
         setIsLoadingProfile(false);
       });
-  }, []);
+  }, [api]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -74,13 +70,12 @@ export default function SettingsSection({
   };
 
   const handleSaveDefaultView = (view: "kanban" | "table") => {
-    setDefaultView(view);
-    localStorage.setItem("default_view_mode", view);
+    setSavedView(view);
     showToast("Default view preference saved!");
   };
 
   const handleResetKanbanThemes = () => {
-    localStorage.removeItem("kanban_column_themes");
+    setKanbanThemes(null);
     showToast("Kanban column colors reset to default.");
   };
 
@@ -120,8 +115,8 @@ export default function SettingsSection({
 
       showToast("OTP sent to your registered email address!");
       setStep("verify_otp");
-    } catch (err: any) {
-      showToast(err.message || "Failed to send OTP");
+    } catch (err) {
+      showToast(errorMessage(err, "Failed to send OTP"));
     } finally {
       setIsSubmitting(false);
     }
@@ -141,7 +136,7 @@ export default function SettingsSection({
     setModalError(null);
 
     // Validate password strength using Zod schema locally inside the modal
-    const passwordCheck = signupSchema.shape.password.safeParse(newPassword);
+    const passwordCheck = passwordSchema.safeParse(newPassword);
     if (!passwordCheck.success) {
       setModalError(passwordCheck.error.issues[0].message);
       return;
@@ -169,9 +164,9 @@ export default function SettingsSection({
       setOtp("");
       setNewPassword("");
       setModalError(null);
-    } catch (err: any) {
+    } catch (err) {
       setModalError(
-        err.message || "Failed to update password. Check your OTP.",
+        errorMessage(err, "Failed to update password. Check your OTP."),
       );
     } finally {
       setIsSubmitting(false);
@@ -218,7 +213,7 @@ export default function SettingsSection({
             <div>
               <label className="text-slate-500 block mb-1">User Name</label>
               <div className="bg-[#050505] border border-white/10 px-3 py-2 rounded-xl text-slate-300 font-medium capitalize">
-                {profile?.name || profile?.username || "User"}
+                {profile?.name || "User"}
               </div>
             </div>
             <div>

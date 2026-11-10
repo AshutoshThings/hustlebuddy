@@ -56,24 +56,19 @@ export default function TableView({
   };
 
   const filteredAndSortedApplications = useMemo(() => {
-    let result = applications.filter((app) => {
+    const result = applications.filter((app) => {
       if (statusFilter === "all") return true;
       return app.status === statusFilter;
     });
+    const dir = sortDirection === "asc" ? 1 : -1;
 
     return result.sort((a, b) => {
-      let valA: any = a[sortField];
-      let valB: any = b[sortField];
-
       if (sortField === "date") {
-        valA = new Date(a.date).getTime();
-        valB = new Date(b.date).getTime();
-        if (sortDirection === "asc") return valA - valB;
-        return valB - valA;
+        return dir * (new Date(a.date).getTime() - new Date(b.date).getTime());
       }
 
       if (sortField === "status") {
-        const weights =
+        const weights: Partial<Record<string, number>> =
           sortDirection === "asc"
             ? { offer: 1, offered: 1, interviewing: 2, applied: 3, rejected: 4 }
             : {
@@ -83,17 +78,13 @@ export default function TableView({
                 applied: 3,
                 rejected: 4,
               };
-
-        valA = weights[a.status as ApplicationStatus] || 99;
-        valB = weights[b.status as ApplicationStatus] || 99;
-        return valA - valB;
+        return (weights[a.status] ?? 99) - (weights[b.status] ?? 99);
       }
 
       if (sortField === "company" || sortField === "role") {
-        valA = (valA || "").toLowerCase();
-        valB = (valB || "").toLowerCase();
-        const comparison = valA.localeCompare(valB);
-        return sortDirection === "asc" ? comparison : -comparison;
+        const valA = (a[sortField] || "").toLowerCase();
+        const valB = (b[sortField] || "").toLowerCase();
+        return dir * valA.localeCompare(valB);
       }
 
       return 0;
