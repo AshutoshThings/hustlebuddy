@@ -60,19 +60,19 @@ function AuthContent() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || ""}/api/auth/verify`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: formData.email,
-            otp,
-            password: formData.password,
-          }),
-          credentials: "include",
-        },
-      );
+      // Same-origin, relative URLs: a NEXT_PUBLIC_* base would be baked in
+      // at build time, and a build made with a localhost value sent real
+      // visitors' requests to their own machine.
+      const res = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          otp,
+          password: formData.password,
+        }),
+        credentials: "include",
+      });
       const data = await res.json();
 
       if (res.status !== 200)
@@ -164,11 +164,7 @@ function AuthContent() {
     setIsLoading(true);
     setError(null);
 
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
-    const endpoint = isLogin
-      ? `${baseUrl}/api/auth/login`
-      : `${baseUrl}/api/auth/signup`;
+    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
 
     const payload = isLogin
       ? { email: formData.email, password: formData.password }

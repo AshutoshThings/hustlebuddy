@@ -1,7 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+import {
+  OAUTH_NEXT_COOKIE,
+  OAUTH_STATE_COOKIE,
+  googleRedirectUri,
+} from "@/app/lib/oauthState";
 import { safeNext } from "@/app/lib/safeNext";
 
 export async function GET(request: Request) {
@@ -24,9 +28,7 @@ export async function GET(request: Request) {
   const state = randomBytes(32).toString("base64url");
 
   const options = {
-    redirect_uri:
-      process.env.GOOGLE_REDIRECT_URI ||
-      "http://localhost:3000/api/auth/google/callback",
+    redirect_uri: googleRedirectUri(request),
     client_id: clientId,
     access_type: "online",
     response_type: "code",

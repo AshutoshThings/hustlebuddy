@@ -7,7 +7,11 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "@/app/lib/authCookies";
-import { OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+import {
+  OAUTH_NEXT_COOKIE,
+  OAUTH_STATE_COOKIE,
+  googleRedirectUri,
+} from "@/app/lib/oauthState";
 import { safeNext } from "@/app/lib/safeNext";
 
 // Stored in password_hash for accounts that sign in with Google only.
@@ -54,9 +58,7 @@ export async function GET(request: Request) {
         code,
         client_id: process.env.GOOGLE_CLIENT_ID || "",
         client_secret: process.env.GOOGLE_CLIENT_SECRET || "",
-        redirect_uri:
-          process.env.GOOGLE_REDIRECT_URI ||
-          "http://localhost:3000/api/auth/google/callback",
+        redirect_uri: googleRedirectUri(request),
         grant_type: "authorization_code",
       }),
     });

@@ -41,7 +41,7 @@ jobs:
       JWT_REFRESH_SECRET: ci-refresh-secret-not-used-anywhere-else
       GOOGLE_CLIENT_ID: ci-google-client-id
       GOOGLE_CLIENT_SECRET: ci-google-client-secret
-      GOOGLE_REDIRECT_URI: http://localhost:3000/api/auth/google/callback
+      GOOGLE_REDIRECT_URI: https://hustlebuddy-44ha.vercel.app/api/auth/google/callback
       NEXT_TELEMETRY_DISABLED: "1"
 
     steps:
