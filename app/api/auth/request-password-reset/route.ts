@@ -6,11 +6,14 @@ import {
   isInResendCooldown,
   otpExpiryFromNow,
 } from "@/app/lib/otp";
+import { rateLimit, clientIp, HOUR } from "@/app/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
     const { email: rawEmail } = await request.json();
-    const email = String(rawEmail ?? "").trim().toLowerCase();
+    const email = String(rawEmail ?? "")
+      .trim()
+      .toLowerCase();
 
     if (!email) {
       return NextResponse.json(
@@ -18,6 +21,26 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    // Per-email cap stops someone flooding a victim's inbox with codes.
+    const limited = await rateLimit(
+      [
+        {
+          name: "reset-request:ip",
+          id: clientIp(request),
+          limit: 10,
+          windowSeconds: HOUR,
+        },
+        {
+          name: "reset-request:email",
+          id: email,
+          limit: 5,
+          windowSeconds: HOUR,
+        },
+      ],
+      "Too many reset requests. Please try again later.",
+    );
+    if (limited) return limited;
 
     const userResult = await pool.query(
       "SELECT id, name, otp_expiry, otp_purpose FROM users WHERE email = $1",

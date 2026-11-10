@@ -1,9 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
-import { OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+import { OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+import { safeNext } from "@/app/lib/safeNext";
 
-export async function GET() {
+export async function GET(request: Request) {
   const clientId = process.env.GOOGLE_CLIENT_ID;
 
   if (!clientId) {
@@ -39,12 +40,16 @@ export async function GET() {
 
   const qs = new URLSearchParams(options);
   const response = NextResponse.redirect(`${rootUrl}?${qs.toString()}`);
-  response.cookies.set(OAUTH_STATE_COOKIE, state, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     maxAge: 10 * 60,
     path: "/api/auth/google",
-  });
+  };
+  response.cookies.set(OAUTH_STATE_COOKIE, state, cookieOptions);
+  // Remember where to land after Google sends the user back.
+  const next = safeNext(new URL(request.url).searchParams.get("next"));
+  response.cookies.set(OAUTH_NEXT_COOKIE, next, cookieOptions);
   return response;
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { safeNext } from "./app/lib/safeNext";
 
 export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -11,7 +12,8 @@ export function proxy(request: NextRequest) {
   const isAuthRoute = path === "/auth";
 
   if (isAuthRoute && isLoggedIn) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    const next = safeNext(request.nextUrl.searchParams.get("next"));
+    return NextResponse.redirect(new URL(next, request.url));
   }
 
   return NextResponse.next();

@@ -1,20 +1,30 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/app/context/AuthContext";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { safeNext } from "@/app/lib/safeNext";
 
 export default function AuthSuccessPage() {
+  return (
+    <Suspense fallback={<Message />}>
+      <Redirect />
+    </Suspense>
+  );
+}
+
+// Cookies are already set by the Google callback; just move on.
+function Redirect() {
   const router = useRouter();
-  const { login } = useAuth();
+  const next = safeNext(useSearchParams().get("next"));
 
   useEffect(() => {
-    // When landing here, cookies are already set by the server.
-    // We can fetch a quick session check or directly transition to dashboard
-    // since the accessToken cookie and refreshToken cookie are present.
-    router.replace("/dashboard");
-  }, [router]);
+    router.replace(next);
+  }, [router, next]);
 
+  return <Message />;
+}
+
+function Message() {
   return (
     <div className="min-h-screen bg-[#000000] flex items-center justify-center text-slate-400 text-sm">
       Authenticating with Google...

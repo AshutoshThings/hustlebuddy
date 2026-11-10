@@ -7,6 +7,7 @@ import {
   setRefreshCookie,
 } from "@/app/lib/authCookies";
 import { loginSchema } from "@/app/lib/validationSchema";
+import { rateLimit, clientIp, MINUTE } from "@/app/lib/rateLimit";
 
 export async function POST(request: Request) {
   let body;
@@ -16,6 +17,23 @@ export async function POST(request: Request) {
     console.log(e);
     return NextResponse.json({ response: "Empty body" }, { status: 400 });
   }
+
+  const ip = clientIp(request);
+  const limited = await rateLimit(
+    [
+      { name: "login:ip", id: ip, limit: 30, windowSeconds: 15 * MINUTE },
+      {
+        name: "login:ip-email",
+        id: `${ip}:${String(body?.email ?? "")
+          .trim()
+          .toLowerCase()}`,
+        limit: 10,
+        windowSeconds: 15 * MINUTE,
+      },
+    ],
+    "Too many login attempts. Please wait a few minutes and try again.",
+  );
+  if (limited) return limited;
 
   const validationResult = loginSchema.safeParse(body);
   if (!validationResult.success) {

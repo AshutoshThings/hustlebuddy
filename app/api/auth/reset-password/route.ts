@@ -5,11 +5,24 @@ import { hashPassword, verifyToken } from "@/app/lib/auth";
 import { hashToken } from "@/app/lib/authCookies";
 import { checkOtp, OTP_ERROR_MESSAGES } from "@/app/lib/otp";
 import { signupSchema } from "@/app/lib/validationSchema";
+import { rateLimit, clientIp, MINUTE } from "@/app/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const limited = await rateLimit([
+      {
+        name: "reset:ip",
+        id: clientIp(request),
+        limit: 30,
+        windowSeconds: 15 * MINUTE,
+      },
+    ]);
+    if (limited) return limited;
+
     const { email: rawEmail, otp, newPassword } = await request.json();
-    const email = String(rawEmail ?? "").trim().toLowerCase();
+    const email = String(rawEmail ?? "")
+      .trim()
+      .toLowerCase();
     const trimmedOtp = String(otp ?? "").trim();
 
     if (!email || !trimmedOtp || !newPassword) {

@@ -4,6 +4,7 @@ import { loginSchema, signupSchema } from "@/app/lib/validationSchema";
 import { useState, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeNext } from "@/app/lib/safeNext";
 import { HustleBuddyLogo } from "../components/ui/HustleBuddyLogo";
 import { useAuth } from "@/app/context/AuthContext";
 
@@ -18,6 +19,8 @@ export default function LoginPage() {
 function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // Where to go after signing in (only allow-listed paths, see safeNext).
+  const nextPath = safeNext(searchParams.get("next"));
   const { login } = useAuth();
 
   const isSignupMode = searchParams.get("mode") === "signup";
@@ -213,7 +216,7 @@ function AuthContent() {
       if (isLogin) {
         if (data?.accessToken) {
           login(data.accessToken);
-          router.replace("/dashboard");
+          router.replace(nextPath);
         } else {
           throw new Error("Access token missing from login response");
         }
@@ -279,7 +282,10 @@ function AuthContent() {
         {mode === "auth" && (
           <>
             <div className="flex flex-col gap-3 mb-6">
-              <a href="/api/auth/google" className="w-full">
+              <a
+                href={`/api/auth/google?next=${encodeURIComponent(nextPath)}`}
+                className="w-full"
+              >
                 <SocialButton
                   icon={<ColorfulGoogleIcon />}
                   text="Continue with Google"

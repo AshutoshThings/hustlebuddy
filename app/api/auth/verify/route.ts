@@ -2,11 +2,24 @@ import pool from "@/app/lib/db";
 import { NextResponse } from "next/server";
 import { verifyPassword } from "@/app/lib/auth";
 import { checkOtp, OTP_ERROR_MESSAGES } from "@/app/lib/otp";
+import { rateLimit, clientIp, MINUTE } from "@/app/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const limited = await rateLimit([
+      {
+        name: "verify:ip",
+        id: clientIp(request),
+        limit: 30,
+        windowSeconds: 15 * MINUTE,
+      },
+    ]);
+    if (limited) return limited;
+
     const { email: rawEmail, otp, password } = await request.json();
-    const email = String(rawEmail ?? "").trim().toLowerCase();
+    const email = String(rawEmail ?? "")
+      .trim()
+      .toLowerCase();
     const trimmedOtp = String(otp ?? "").trim();
 
     if (!email || !trimmedOtp || typeof password !== "string" || !password) {

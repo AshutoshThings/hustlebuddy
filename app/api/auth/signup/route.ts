@@ -8,9 +8,23 @@ import {
   isInResendCooldown,
   otpExpiryFromNow,
 } from "@/app/lib/otp";
+import { rateLimit, clientIp, HOUR } from "@/app/lib/rateLimit";
 
 export async function POST(request: Request) {
   try {
+    const limited = await rateLimit(
+      [
+        {
+          name: "signup:ip",
+          id: clientIp(request),
+          limit: 10,
+          windowSeconds: HOUR,
+        },
+      ],
+      "Too many signup attempts. Please try again later.",
+    );
+    if (limited) return limited;
+
     const body = await request.json();
 
     const validationResult = signupSchema.safeParse(body);

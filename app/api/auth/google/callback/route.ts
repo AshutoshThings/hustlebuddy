@@ -7,7 +7,8 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "@/app/lib/authCookies";
-import { OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+import { OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE } from "@/app/lib/oauthState";
+import { safeNext } from "@/app/lib/safeNext";
 
 // Stored in password_hash for accounts that sign in with Google only.
 // It is not a bcrypt hash, so no password can ever match it.
@@ -24,14 +25,22 @@ function fail(request: Request, error: string) {
   const response = NextResponse.redirect(
     new URL(`/auth?error=${error}`, request.url),
   );
-  response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth/google" });
+  clearOauthCookies(response);
   return response;
+}
+
+function clearOauthCookies(response: NextResponse) {
+  for (const name of [OAUTH_STATE_COOKIE, OAUTH_NEXT_COOKIE]) {
+    response.cookies.delete({ name, path: "/api/auth/google" });
+  }
 }
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
-  const expectedState = (await cookies()).get(OAUTH_STATE_COOKIE)?.value;
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(OAUTH_STATE_COOKIE)?.value;
+  const next = safeNext(cookieStore.get(OAUTH_NEXT_COOKIE)?.value ?? null);
 
   if (!code || !stateMatches(expectedState, url.searchParams.get("state"))) {
     return fail(request, "GoogleAuthFailed");
@@ -100,9 +109,9 @@ export async function GET(request: Request) {
     const { accessToken, refreshToken } = await issueSession(user.id);
 
     const response = NextResponse.redirect(
-      new URL("/auth/success", request.url),
+      new URL(`/auth/success?next=${encodeURIComponent(next)}`, request.url),
     );
-    response.cookies.delete({ name: OAUTH_STATE_COOKIE, path: "/api/auth/google" });
+    clearOauthCookies(response);
     setRefreshCookie(response, refreshToken);
     setAccessCookie(response, accessToken);
     return response;

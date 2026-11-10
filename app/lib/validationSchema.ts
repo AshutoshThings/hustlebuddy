@@ -12,7 +12,11 @@ export const loginSchema = z.object({
 });
 
 const signupFields = z.object({
-  name: z.string().min(2, "Name is Required"),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name is Required")
+    .max(100, "Name must be at most 100 characters"),
 });
 
 export const signupSchema = signupFields.merge(loginSchema);

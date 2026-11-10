@@ -1,3 +1,15 @@
+// Names are user-supplied; escape them so they can't inject HTML (links,
+// fake buttons) into emails sent from our domain.
+function escapeHtml(value: string): string {
+  return value.replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ]!,
+  );
+}
+
 async function sendEmail(
   email: string,
   name: string,
@@ -51,13 +63,13 @@ export async function sendVerificationEmail(
   otp: string,
 ) {
   try {
-    const data = await sendEmail(
+    await sendEmail(
       email,
       name,
       "Verify your HustleBuddy Account",
       `
         <div style="font-family: sans-serif; text-align: center;">
-          <h2>Welcome to HustleBuddy, ${name}!</h2>
+          <h2>Welcome to HustleBuddy, ${escapeHtml(name)}!</h2>
 
           <p>Your verification code is:</p>
 
@@ -76,8 +88,6 @@ export async function sendVerificationEmail(
         </div>
       `,
     );
-
-    console.log("Verification email sent successfully:", data);
   } catch (error) {
     console.error("Mailjet Verification Email Error:", error);
     throw error;
@@ -90,7 +100,7 @@ export async function sendPasswordResetEmail(
   otp: string,
 ) {
   try {
-    const data = await sendEmail(
+    await sendEmail(
       email,
       name,
       "Password Reset Code - HustleBuddy",
@@ -99,7 +109,7 @@ export async function sendPasswordResetEmail(
           <h2>Password Reset Request</h2>
 
           <p>
-            Hi ${name}, use the verification code below
+            Hi ${escapeHtml(name)}, use the verification code below
             to reset your password:
           </p>
 
@@ -121,8 +131,6 @@ export async function sendPasswordResetEmail(
         </div>
       `,
     );
-
-    console.log("Password reset email sent successfully:", data);
   } catch (error) {
     console.error("Mailjet Password Reset Email Error:", error);
     throw error;
