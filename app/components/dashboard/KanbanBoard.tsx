@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { Application, ApplicationStatus } from "@/app/types/application";
 import KanbanCard from "./KanbanCard"; // Import your KanbanCard component
 import { useLocalStorage } from "@/app/hooks/useLocalStorage";
+import { matchesTimeFilter, type TimeFilter } from "@/app/lib/applicationView";
 
 type KanbanBoardProps = {
   applications: Application[];
@@ -11,8 +12,6 @@ type KanbanBoardProps = {
   onDelete: (app: Application) => void;
   onStatusChange: (appId: string, newStatus: ApplicationStatus) => void;
 };
-
-type TimeFilter = "all" | "week" | "month";
 
 type ColorTheme = {
   name: string;
@@ -133,28 +132,9 @@ export default function KanbanBoard({
 
   const filteredApplications = useMemo(() => {
     const now = new Date();
-
-    return applications.filter((app) => {
-      if (timeFilter === "all") return true;
-
-      const appDate = new Date(app.date);
-      if (isNaN(appDate.getTime())) return true;
-
-      if (timeFilter === "month") {
-        return (
-          appDate.getMonth() === now.getMonth() &&
-          appDate.getFullYear() === now.getFullYear()
-        );
-      }
-
-      if (timeFilter === "week") {
-        const diffTime = now.getTime() - appDate.getTime();
-        const diffDays = diffTime / (1000 * 3600 * 24);
-        return diffDays >= 0 && diffDays <= 7;
-      }
-
-      return true;
-    });
+    return applications.filter((app) =>
+      matchesTimeFilter(app.appliedAt, timeFilter, now),
+    );
   }, [applications, timeFilter]);
 
   const handleDragOver = (e: React.DragEvent) => {
