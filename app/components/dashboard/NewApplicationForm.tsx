@@ -4,21 +4,18 @@ import { useState } from "react";
 import { Application, ApplicationStatus } from "@/app/types/application";
 import { useApiClient } from "@/app/hooks/useApiClient";
 import { errorMessage } from "@/app/lib/errorMessage";
+import {
+  createPayload,
+  editPayload,
+  toApplication,
+  type ApplicationFields,
+} from "@/app/lib/applicationView";
 
 type NewApplicationFormProps = {
   initialData?: Application | null; // <--- If present, we are editing!
   onClose: () => void;
   onSaved: (app: Application) => void; // <--- Generic handler for created or updated
 };
-
-function formatAppliedAt(value: string | Date): string {
-  const d = new Date(value);
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
 
 export default function NewApplicationForm({
   initialData,
@@ -29,12 +26,12 @@ export default function NewApplicationForm({
   const isEditing = Boolean(initialData);
 
   // Initialize state with initialData if editing, or defaults if creating
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ApplicationFields>({
     company: initialData?.company || "",
     role: initialData?.role || "",
-    status: (initialData?.status || "applied") as ApplicationStatus,
-    source: "",
-    notes: "",
+    status: initialData?.status || "applied",
+    source: initialData?.source || "",
+    notes: initialData?.notes || "",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,24 +45,22 @@ export default function NewApplicationForm({
     try {
       let row;
       if (isEditing && initialData) {
-        // Call PATCH endpoint
-        const data = await api.updateApplication(initialData.id, formData);
-        row = data.application;
+        const changes = editPayload(initialData, formData);
+        if (Object.keys(changes).length === 0) {
+          onClose(); // nothing to save
+          return;
+        }
+        row = (await api.updateApplication(initialData.id, changes))
+          .application;
       } else {
-        // Call POST endpoint
-        const data = await api.createApplication(formData);
+        const data = await api.createApplication(createPayload(formData));
+        if (data.duplicate) {
+          throw new Error("You already track this role at this company");
+        }
         row = data.application;
       }
 
-      const savedApp: Application = {
-        id: String(row.id),
-        company: row.company,
-        role: row.role,
-        status: row.status,
-        date: formatAppliedAt(row.applied_at || new Date()),
-      };
-
-      onSaved(savedApp);
+      onSaved(toApplication(row));
     } catch (err) {
       setError(errorMessage(err, "Failed to save application"));
     } finally {
@@ -146,6 +141,38 @@ export default function NewApplicationForm({
               <option value="offered">Offered</option>
               <option value="rejected">Rejected</option>
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">
+              Source
+            </label>
+            <input
+              type="text"
+              maxLength={100}
+              placeholder="e.g. LinkedIn, referral, college placement cell"
+              value={formData.source}
+              onChange={(e) =>
+                setFormData({ ...formData, source: e.target.value })
+              }
+              className="w-full bg-[#050505] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1">
+              Notes
+            </label>
+            <textarea
+              rows={3}
+              maxLength={5000}
+              placeholder="Referral, recruiter name, next steps…"
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+              className="w-full bg-[#050505] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-white/30 resize-y"
+            />
           </div>
 
           <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t border-white/5">
