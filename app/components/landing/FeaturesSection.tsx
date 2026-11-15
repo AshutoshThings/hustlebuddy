@@ -91,10 +91,10 @@ export const FeaturesSection = () => {
                   Autofill extension
                 </h3>
               </div>
-              <StatusLabel status="testing" className="mt-2 z-10" />
+              <StatusLabel status="soon" className="mt-2 z-10" />
               <p className="text-slate-400 text-sm mt-3 z-10">
-                Fills application forms from your profile. Planned for Chrome
-                and Edge.
+                Fill in your profile once, and the extension fills application
+                forms on supported portals. Coming to Chrome first.
               </p>
               <div className="absolute -bottom-6 right-6 w-52 bg-[#111] border border-white/10 rounded-xl shadow-2xl p-4 flex flex-col group-hover:scale-105 transition-transform duration-500">
                 <div className="flex items-center gap-2 border-b border-white/5 pb-3 mb-3">
@@ -106,9 +106,9 @@ export const FeaturesSection = () => {
                   </div>
                 </div>
                 {[
-                  ["Name", "Ashutosh Vishwakarma"],
-                  ["Email", "ashutoshvish2024@gmail.com"],
-                  ["College", "JIIT Noida"],
+                  ["Name", "Riya Sharma"],
+                  ["Email", "riya@example.com"],
+                  ["College", "Your college"],
                 ].map(([k, v]) => (
                   <div key={k} className="mb-2">
                     <div className="text-[10px] text-slate-500">{k}</div>
@@ -134,7 +134,7 @@ export const FeaturesSection = () => {
                   See what gets replies
                 </h3>
               </div>
-              <StatusLabel status="live" className="mt-2 z-10" />
+              <StatusLabel status="soon" className="mt-2 z-10" />
               <p className="text-slate-400 text-sm mt-3 z-10">
                 Compare portals by how many applications turned into a response.
               </p>
@@ -144,7 +144,7 @@ export const FeaturesSection = () => {
                     ["Internshala", 40],
                     ["Unstop", 70],
                     ["LinkedIn", 45],
-                    ["Wellfound", 90],
+                    ["Naukri", 90],
                   ].map(([name, h]) => (
                     <div
                       key={name}
@@ -158,13 +158,11 @@ export const FeaturesSection = () => {
                   ))}
                 </div>
                 <div className="flex gap-3 mt-2 text-[10px] text-slate-500">
-                  {["Internshala", "Unstop", "LinkedIn", "Wellfound"].map(
-                    (n) => (
-                      <span key={n} className="flex-1 truncate">
-                        {n}
-                      </span>
-                    ),
-                  )}
+                  {["Internshala", "Unstop", "LinkedIn", "Naukri"].map((n) => (
+                    <span key={n} className="flex-1 truncate">
+                      {n}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -179,11 +177,11 @@ export const FeaturesSection = () => {
                 <h3 className="text-xl font-medium text-white">
                   Keep test and interview dates with the application
                 </h3>
-                <StatusLabel status="live" className="shrink-0 ml-4" />
+                <StatusLabel status="soon" className="shrink-0 ml-4" />
               </div>
               <p className="text-slate-400 text-sm max-w-md mt-2 mb-6 z-10">
-                Log online-assessment deadlines and interview slots on the
-                application itself, so you can find the link when you need it.
+                Keep online-assessment deadlines, test links and interview slots
+                on the application itself, with a reminder before they’re due.
               </p>
               <div className="space-y-2 max-w-md z-10">
                 {[
