@@ -32,7 +32,9 @@ export async function GET(request: Request) {
   const { userId } = auth;
   try {
     const userApplications = await pool.query(
-      "SELECT * FROM applications where user_id = $1 AND deleted_at IS NULL",
+      // Newest first. Without an ORDER BY, Postgres returns rows in storage
+      // order, and an updated row moves to the end.
+      "SELECT * FROM applications WHERE user_id = $1 AND deleted_at IS NULL ORDER BY applied_at DESC, id DESC",
       [userId],
     );
 

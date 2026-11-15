@@ -77,3 +77,25 @@ export function editPayload(initial: Application, form: ApplicationFields) {
   if (form.notes !== before.notes) payload.notes = form.notes;
   return payload;
 }
+
+export type TimeFilter = "all" | "week" | "month";
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Filters on the stored timestamp, never on the formatted date: the display
+// text depends on the browser's language ("16 नव॰ 2026" can't be parsed back).
+export function matchesTimeFilter(
+  appliedAt: string,
+  filter: TimeFilter,
+  now: Date = new Date(),
+): boolean {
+  if (filter === "all") return true;
+  const t = new Date(appliedAt);
+  if (filter === "month") {
+    return (
+      t.getMonth() === now.getMonth() && t.getFullYear() === now.getFullYear()
+    );
+  }
+  const age = now.getTime() - t.getTime();
+  return age >= 0 && age <= 7 * DAY_MS;
+}

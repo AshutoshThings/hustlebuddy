@@ -178,7 +178,7 @@ export default function DashboardPage() {
         <NewApplicationForm
           onClose={() => setShowCreateForm(false)}
           onSaved={(newApp) => {
-            setApplications((current) => [...current, newApp]);
+            setApplications((current) => [newApp, ...current]);
             setShowCreateForm(false);
           }}
         />

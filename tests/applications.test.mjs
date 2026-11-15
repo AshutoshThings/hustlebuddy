@@ -81,6 +81,24 @@ describe("applications", () => {
     assert.equal(rows[0].n, 1);
   });
 
+  test("the list is newest first and editing doesn't reorder it", async () => {
+    const order = async () =>
+      (await call("/api/applications", { jar })).data.applications.map(
+        (a) => a.company,
+      );
+    for (const company of ["Order A", "Order B", "Order C"]) {
+      await add({ company, role: "Dev", status: "applied" });
+    }
+    const before = (await order()).filter((c) => c.startsWith("Order"));
+    assert.deepEqual(before, ["Order C", "Order B", "Order A"]);
+    const b = (await call("/api/applications", { jar })).data.applications.find(
+      (a) => a.company === "Order B",
+    );
+    await patch(b.id, { status: "rejected" });
+    const after = (await order()).filter((c) => c.startsWith("Order"));
+    assert.deepEqual(after, before);
+  });
+
   test("editing works, renaming into an existing application is a 409", async () => {
     const list = await call("/api/applications", { jar });
     const globex = list.data.applications.find((a) => a.company === "Globex");

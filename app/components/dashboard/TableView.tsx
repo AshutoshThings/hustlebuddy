@@ -64,7 +64,7 @@ export default function TableView({
 
     return result.sort((a, b) => {
       if (sortField === "date") {
-        return dir * (new Date(a.date).getTime() - new Date(b.date).getTime());
+        return dir * (Date.parse(a.appliedAt) - Date.parse(b.appliedAt));
       }
 
       if (sortField === "status") {

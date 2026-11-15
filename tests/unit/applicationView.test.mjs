@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   createPayload,
   editPayload,
+  matchesTimeFilter,
   toApplication,
 } from "../../app/lib/applicationView.ts";
 
@@ -66,4 +67,17 @@ test("create leaves blank optional fields out and trims", () => {
     }),
     { company: "Acme", role: "Dev", status: "applied" },
   );
+});
+
+test("time filters use the timestamp, whatever the browser language", () => {
+  const now = new Date("2026-11-16T12:00:00");
+  const daysAgo = (n) => new Date(now.getTime() - n * 86400000).toISOString();
+  // The old filter parsed the display text; in Hindi that is "16 नव॰ 2026",
+  // which doesn't parse, so every application passed every filter.
+  assert.ok(Number.isNaN(Date.parse("16 नव॰ 2026")));
+  assert.equal(matchesTimeFilter(daysAgo(3), "week", now), true);
+  assert.equal(matchesTimeFilter(daysAgo(10), "week", now), false);
+  assert.equal(matchesTimeFilter(daysAgo(10), "month", now), true);
+  assert.equal(matchesTimeFilter(daysAgo(40), "month", now), false);
+  assert.equal(matchesTimeFilter(daysAgo(400), "all", now), true);
 });
