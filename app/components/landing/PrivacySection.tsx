@@ -1,21 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { Reveal } from "@/app/components/ui/Reveal";
 
-// DRAFT COPY: check every line against what the product actually does
-// before shipping, especially the Gmail line.
+// Keep in step with /privacy (app/privacy/page.tsx).
 const policies = [
   {
     title: "The extension only runs on job sites",
-    desc: "It doesn’t read the rest of your browsing.",
+    desc: "It runs on LinkedIn, Unstop, Internshala and Naukri job pages and on HustleBuddy. It doesn’t read the rest of your browsing.",
   },
   {
-    title: "Your details are used to fill your applications",
-    desc: "Phone number, email and resume links are stored encrypted and used for nothing else.",
+    title: "Your applications are private to you",
+    desc: "Only your account can see your applications and notes. Resumes are kept in private storage and opened through links that expire after an hour.",
   },
   {
     title: "We don’t sell data or show ads",
-    desc: "Your profile isn’t shared with recruiters or anyone else.",
+    desc: "Nothing you add is shared with recruiters or anyone else.",
   },
   {
     title: "Gmail access will be opt-in",
@@ -34,7 +34,14 @@ export const PrivacySection = () => {
             </h2>
             <p className="text-slate-400 text-lg">
               Applications need personal details, so here is plainly what we do
-              with them.
+              with them. The full version is in our{" "}
+              <Link
+                href="/privacy"
+                className="text-white/80 underline underline-offset-4 decoration-white/20 hover:decoration-white/60"
+              >
+                Privacy Policy
+              </Link>
+              .
             </p>
           </div>
         </Reveal>

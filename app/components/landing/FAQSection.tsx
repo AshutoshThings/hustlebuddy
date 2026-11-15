@@ -7,15 +7,19 @@ import { Reveal } from "@/app/components/ui/Reveal";
 const faqs = [
   {
     q: "Do I need the extension to use the dashboard?",
-    a: "No. The dashboard works on its own and you add applications yourself. The extension will save you the typing once it’s released.",
+    a: "No. The dashboard works on its own and you can add applications by hand. The extension saves you the typing on job sites.",
   },
   {
-    q: "Which portals will the extension work with?",
-    a: "It’s still in testing. We’re starting with Internshala, Unstop, Wellfound and LinkedIn. For any other site, you can add the application to the dashboard by hand.",
+    q: "Which portals does the extension work with?",
+    a: "LinkedIn, Unstop, Internshala and Naukri. It notices when you submit an application there and asks before adding it. On any other site, open the extension to save the job, or add it on the dashboard.",
+  },
+  {
+    q: "How do I install the extension?",
+    a: "Download it from the link at the bottom of this page, unzip it, open chrome://extensions, turn on Developer mode and choose Load unpacked. A Chrome Web Store listing is on the way.",
   },
   {
     q: "How will autofill work?",
-    a: "You fill in your profile once. On a supported site, the extension matches your details to the form fields and fills them when you click. You check the form and submit it yourself.",
+    a: "It isn’t available yet. You’ll fill in your profile once; on a supported site, the extension will match your details to the form fields and fill them when you click. You check the form and submit it yourself.",
   },
   {
     q: "What will Gmail sync do?",

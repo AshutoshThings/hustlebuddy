@@ -57,10 +57,10 @@ export const Hero = () => {
 
         <FadeIn delay={0.4}>
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl leading-relaxed">
-            Internshala, Unstop, Wellfound, LinkedIn: every one asks for the
-            same details again. Keep all your applications in one dashboard
-            today. The browser extension and Gmail tracking are what we’re
-            building next.
+            Internshala, Unstop, Naukri, LinkedIn: every one asks for the same
+            details again. Keep all your applications in one dashboard, and let
+            the browser extension log them as you apply. Autofill and Gmail
+            tracking are what we’re building next.
           </p>
         </FadeIn>
 
@@ -86,7 +86,8 @@ export const Hero = () => {
             <span className="inline-flex items-center gap-2">
               <StatusLabel status="live" label="Dashboard" />
             </span>
-            <StatusLabel status="testing" label="Extension" />
+            <StatusLabel status="live" label="Extension" />
+            <StatusLabel status="soon" label="Autofill" />
             <StatusLabel status="soon" label="Gmail sync" />
             <StatusLabel status="research" label="Auto-submit" />
           </div>

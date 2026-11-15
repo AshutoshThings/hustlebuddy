@@ -8,13 +8,25 @@ const items: { title: string; status: Status; description: string }[] = [
     title: "Application tracker",
     status: "live",
     description:
-      "One dashboard for applications from LinkedIn, Unstop, Internshala and any other site. Add them by hand, move them through stages, log deadlines.",
+      "One dashboard for applications from LinkedIn, Unstop, Internshala and any other site. Add them by hand, move them through stages, keep notes and resumes with them.",
   },
   {
     title: "Browser extension",
-    status: "testing",
+    status: "live",
     description:
-      "Fills application forms from your profile and adds the application to your dashboard when you submit. Chrome and Edge first.",
+      "Notices when you submit an application on LinkedIn, Unstop, Internshala or Naukri and, once you confirm, adds it to your dashboard. On any other page, open it to save the job yourself. Chrome first.",
+  },
+  {
+    title: "Deadlines and reminders",
+    status: "soon",
+    description:
+      "Keep test links, assessment deadlines and interview slots with each application, and get a reminder before they’re due.",
+  },
+  {
+    title: "Autofill from your profile",
+    status: "soon",
+    description:
+      "Fill in your profile once and the extension fills application forms on supported portals. You check the form and submit it yourself.",
   },
   {
     title: "Gmail status sync",
