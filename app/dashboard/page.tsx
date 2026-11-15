@@ -17,26 +17,7 @@ import ConfirmModal from "@/app/components/dashboard/ConfirmModal";
 import ResumesSection from "@/app/components/dashboard/ResumesSection";
 import SettingsSection from "@/app/components/dashboard/SettingsSection";
 import { errorMessage } from "@/app/lib/errorMessage";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toApplication(row: any): Application {
-  return {
-    id: String(row.id),
-    company: row.company,
-    role: row.role,
-    status: row.status,
-    date: formatAppliedAt(row.applied_at || row.created_at || new Date()),
-  };
-}
-
-function formatAppliedAt(value: string | Date): string {
-  const d = new Date(value);
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
+import { toApplication } from "@/app/lib/applicationView";
 
 export default function DashboardPage() {
   const router = useRouter();

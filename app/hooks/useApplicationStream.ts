@@ -3,10 +3,11 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/app/context/AuthContext";
 import { refreshSession } from "@/app/lib/refreshSession";
+import type { ApplicationRow } from "@/app/lib/applicationView";
 
 type Handlers = {
   // An application was created (on another device, or by the extension).
-  onApplication: (row: Record<string, unknown>) => void;
+  onApplication: (row: ApplicationRow) => void;
   // The stream came back after a gap: events may have been missed, reload.
   onResync: () => void;
 };
